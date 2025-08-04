@@ -25,6 +25,7 @@ import { Label } from '@/components/ui/label'
 import { Icons } from '@/components/ui/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Switch } from '@/components/ui/switch'
+import { cn } from '@/lib/utils'
 
 const categorySchema = z.object({
   name: z.string().min(1, 'Category name is required'),
