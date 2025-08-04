@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { 
   LayoutDashboard, 
   Wallet, 
@@ -11,7 +11,8 @@ import {
   TrendingUp, 
   Settings,
   Menu,
-  X
+  X,
+  LogOut
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -84,7 +85,7 @@ export function Sidebar() {
 
           {/* User section */}
           <div className="border-t border-slate-800 p-4">
-            <div className="flex items-center">
+            <div className="flex items-center mb-4">
               <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-semibold">
                 {userInitial}
               </div>
@@ -93,6 +94,14 @@ export function Sidebar() {
                 <p className="text-xs text-slate-400">{session?.user?.email || 'user@example.com'}</p>
               </div>
             </div>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800"
+              onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+            >
+              <LogOut className="mr-3 h-5 w-5" />
+              Logout
+            </Button>
           </div>
         </div>
       </aside>
