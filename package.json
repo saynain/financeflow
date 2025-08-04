@@ -9,14 +9,18 @@
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
   },
-  "packageManager": "pnpm@8.15.0",
+  "packageManager": "pnpm@10.14.0",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "start": "turbo start",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,md,json}\"",
-    "clean": "turbo clean && rm -rf node_modules"
+    "clean": "turbo clean && rm -rf node_modules",
+    "db:generate": "turbo db:generate",
+    "db:push": "turbo db:push",
+    "db:migrate": "pnpm --filter @financeflow/database db:migrate",
+    "db:studio": "pnpm --filter @financeflow/database db:studio"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
