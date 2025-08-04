@@ -9,6 +9,7 @@ import { useTransactions, useDashboardStats } from '@/hooks/use-dashboard'
 import { format } from 'date-fns'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TransactionForm } from '@/components/transaction-form'
+import { TransactionItem } from '@/components/transaction-item'
 
 const categoryColors: Record<string, string> = {
   'Food & Dining': 'bg-green-100 text-green-800',
@@ -153,30 +154,11 @@ export default function ExpensesPage() {
                 </p>
               ) : (
                 expenses.map((expense) => (
-                  <div key={expense.id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center text-2xl">
-                        {expense.category.icon || '💸'}
-                      </div>
-                      <div>
-                        <p className="font-medium">{expense.description || expense.category.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={cn(
-                            "text-xs px-2 py-1 rounded-full font-medium",
-                            categoryColors[expense.category.name] || 'bg-gray-100 text-gray-800'
-                          )}>
-                            {expense.category.name}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {format(new Date(expense.date), 'MMM d, yyyy')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-lg font-semibold text-red-600">
-                      -${Number(expense.amount).toFixed(2)}
-                    </div>
-                  </div>
+                  <TransactionItem 
+                    key={expense.id} 
+                    transaction={expense}
+                    showCategory={true}
+                  />
                 ))
               )}
             </div>

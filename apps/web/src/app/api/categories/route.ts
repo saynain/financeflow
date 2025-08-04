@@ -33,8 +33,25 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, type, icon, color, budgetLimit } = body
+    const { name, type, icon, color, budgetLimit, parentId, isMainCategory } = body
 
+    // If creating a main category, ensure it has no parent
+    if (isMainCategory) {
+      const category = await prisma.category.create({
+        data: {
+          name,
+          type,
+          icon,
+          color,
+          budgetLimit: null, // Main categories don't have budgets
+          parentId: null,
+          userId: session.user.id,
+        },
+      })
+      return NextResponse.json(category, { status: 201 })
+    }
+
+    // For subcategories
     const category = await prisma.category.create({
       data: {
         name,
@@ -42,6 +59,7 @@ export async function POST(request: Request) {
         icon,
         color,
         budgetLimit,
+        parentId,
         userId: session.user.id,
       },
     })

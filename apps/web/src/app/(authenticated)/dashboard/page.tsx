@@ -11,6 +11,7 @@ import { useDashboardStats, useTransactions } from '@/hooks/use-dashboard'
 import { format } from 'date-fns'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TransactionForm } from '@/components/transaction-form'
+import { TransactionItem } from '@/components/transaction-item'
 
 export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
@@ -174,28 +175,7 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-4">
               {transactionsData?.transactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-xl">
-                      {transaction.category.icon || '💰'}
-                    </div>
-                    <div>
-                      <p className="font-medium">{transaction.description || transaction.category.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(transaction.date), 'MMM d, h:mm a')}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={cn(
-                      "font-semibold",
-                      transaction.type === 'INCOME' ? "text-green-600" : "text-red-600"
-                    )}>
-                      {transaction.type === 'INCOME' ? '+' : '-'}${Math.abs(transaction.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{transaction.category.name}</p>
-                  </div>
-                </div>
+                <TransactionItem key={transaction.id} transaction={transaction} />
               ))}
             </div>
           )}

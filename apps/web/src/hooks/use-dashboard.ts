@@ -1,4 +1,37 @@
-import { useQuery } from '@tanstack/react-query'
+interface BudgetCategory {
+  id: string
+  name: string
+  icon: string | null
+  budgetLimit: number
+  spent: number
+  color: string | null
+}
+
+interface BudgetGroup {
+  name: string
+  categories: BudgetCategory[]
+  totalBudget: number
+  totalSpent: number
+}
+
+interface BudgetsResponse {
+  budgets: BudgetGroup[]
+  totalBudget: number
+  totalSpent: number
+}
+
+export function useBudgets() {
+  return useQuery<BudgetsResponse>({
+    queryKey: ['budgets'],
+    queryFn: async () => {
+      const response = await fetch('/api/budgets')
+      if (!response.ok) {
+        throw new Error('Failed to fetch budgets')
+      }
+      return response.json()
+    },
+  })
+}import { useQuery } from '@tanstack/react-query'
 
 interface DashboardStats {
   totalBalance: number
