@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { useState } from 'react'
 
 const navigation = [
@@ -48,16 +49,17 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed left-0 top-0 z-40 h-screen w-64 bg-slate-900 transition-transform",
+        "fixed left-0 top-0 z-40 h-screen w-64 bg-card border-r transition-transform",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center px-6">
+          <div className="flex h-16 items-center justify-between px-6">
             <div className="flex items-center gap-2">
               <span className="text-2xl">💰</span>
-              <span className="text-xl font-bold text-white">FinanceFlow</span>
+              <span className="text-xl font-bold">FinanceFlow</span>
             </div>
+            <ThemeToggle />
           </div>
 
           {/* Navigation */}
@@ -72,8 +74,8 @@ export function Sidebar() {
                   className={cn(
                     "group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-slate-800 text-white"
-                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   )}
                 >
                   <item.icon className="mr-3 h-5 w-5" />
@@ -84,19 +86,19 @@ export function Sidebar() {
           </nav>
 
           {/* User section */}
-          <div className="border-t border-slate-800 p-4">
+          <div className="border-t border-border p-4">
             <div className="flex items-center mb-4">
               <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-semibold">
                 {userInitial}
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-white">{session?.user?.name || 'User'}</p>
-                <p className="text-xs text-slate-400">{session?.user?.email || 'user@example.com'}</p>
+                <p className="text-sm font-medium">{session?.user?.name || 'User'}</p>
+                <p className="text-xs text-muted-foreground">{session?.user?.email || 'user@example.com'}</p>
               </div>
             </div>
             <Button
               variant="ghost"
-              className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800"
+              className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-accent"
               onClick={() => signOut({ callbackUrl: '/auth/signin' })}
             >
               <LogOut className="mr-3 h-5 w-5" />

@@ -3,11 +3,15 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { useChartData } from '@/hooks/use-dashboard'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useTheme } from 'next-themes'
 
 const CustomTooltip = ({ active, payload }: any) => {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+  
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white p-2 rounded-lg shadow-lg border">
+      <div className={`${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-2 rounded-lg shadow-lg border`}>
         <p className="font-semibold">{payload[0].name}</p>
         <p className="text-sm">${payload[0].value.toLocaleString()}</p>
       </div>

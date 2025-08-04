@@ -3,15 +3,19 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useChartData } from '@/hooks/use-dashboard'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useTheme } from 'next-themes'
 
 export function CashFlowChart() {
   const { data, isLoading } = useChartData()
+  const { theme } = useTheme()
 
   if (isLoading) {
     return <Skeleton className="h-[300px] w-full" />
   }
 
   const chartData = data?.cashFlow || []
+  const isDark = theme === 'dark'
+  
   return (
     <ResponsiveContainer width="100%" height={300}>
       <AreaChart data={chartData}>
@@ -25,16 +29,16 @@ export function CashFlowChart() {
             <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#f0f0f0"} />
         <XAxis 
           dataKey="month" 
-          stroke="#888888"
+          stroke={isDark ? "#9ca3af" : "#888888"}
           fontSize={12}
           tickLine={false}
           axisLine={false}
         />
         <YAxis
-          stroke="#888888"
+          stroke={isDark ? "#9ca3af" : "#888888"}
           fontSize={12}
           tickLine={false}
           axisLine={false}
@@ -42,10 +46,11 @@ export function CashFlowChart() {
         />
         <Tooltip
           contentStyle={{ 
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            border: '1px solid #e5e7eb',
+            backgroundColor: isDark ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
             borderRadius: '8px',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            color: isDark ? '#f9fafb' : '#111827'
           }}
           formatter={(value: number) => [`$${value.toLocaleString()}`, '']}
         />
