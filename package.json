@@ -19,8 +19,8 @@
     "clean": "turbo clean && rm -rf node_modules",
     "db:generate": "turbo db:generate",
     "db:push": "turbo db:push",
-    "db:migrate": "cd packages/database && dotenv -e ../../.env -- prisma migrate dev",
-    "db:studio": "cd packages/database && dotenv -e ../../.env -- prisma studio",
+    "db:migrate": "cd packages/database && dotenv -e ../../.env -- npx prisma migrate dev",
+    "db:studio": "cd packages/database && dotenv -e ../../.env -- npx prisma studio",
     "setup": "./setup.sh",
     "fix-env": "./fix-env.sh"
   },

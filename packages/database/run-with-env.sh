@@ -17,4 +17,10 @@ if ! command -v dotenv &>/dev/null; then
 fi
 
 # Run the command with the root .env file
-dotenv -e ../../.env -- $@ 
+if command -v dotenv &>/dev/null; then
+  dotenv -e ../../.env -- $@
+else
+  # Fallback: source the .env file and run the command
+  export $(grep -v '^#' ../../.env | xargs)
+  $@
+fi 

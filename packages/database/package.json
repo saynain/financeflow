@@ -7,9 +7,9 @@
   "scripts": {
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:migrate": "./run-with-env.sh 'prisma migrate dev'",
-    "db:studio": "./run-with-env.sh 'prisma studio'",
-    "db:seed": "./run-with-env.sh 'tsx src/seed.ts'"
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:studio": "dotenv -e ../../.env -- prisma studio",
+    "db:seed": "dotenv -e ../../.env -- tsx src/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.8.1",
@@ -19,6 +19,7 @@
   "devDependencies": {
     "@financeflow/config-typescript": "workspace:*",
     "@types/node": "^20.11.5",
+    "dotenv-cli": "^7.4.1",
     "prisma": "^5.8.1",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"

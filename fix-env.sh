@@ -41,6 +41,7 @@ fi
 # Install dotenv-cli if not already installed
 echo "📦 Installing dotenv-cli..."
 pnpm add -D dotenv-cli
+cd packages/database && pnpm add -D dotenv-cli && cd ../..
 
 echo ""
 echo "✅ Environment variables fixed!"
