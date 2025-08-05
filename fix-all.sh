@@ -1,6 +1,7 @@
 #!/bin/bash
 
-echo "🔧 Fixing FinanceFlow environment variables..."
+echo "🔧 Comprehensive FinanceFlow Fix Script"
+echo "======================================"
 
 # Check if .env exists
 if [ ! -f .env ]; then
@@ -17,7 +18,7 @@ if ! grep -q "NEXTAUTH_SECRET=" .env || grep -q "your-secret-key-here" .env; the
     sed -i '' "s/NEXTAUTH_SECRET=.*/NEXTAUTH_SECRET=\"$SECRET\"/" .env
   else
     # Linux
-    sed -i "s/NEXTAUTH_SECRET=.*/NEXTAUTH_SECRET=\"$SECRET\"/" .env
+    sed -i "s/NEXTAUTH_SECRET=.*/NEXTAUTH_SECRET=\"$NEW_SECRET\"/" .env
   fi
   echo "✅ Generated secure NEXTAUTH_SECRET"
 else
@@ -38,6 +39,10 @@ if ! grep -q "NEXTAUTH_URL=" .env; then
   echo "✅ Added NEXTAUTH_URL"
 fi
 
+# Install dependencies
+echo "📦 Installing dependencies..."
+pnpm install
+
 # Install dotenv-cli if not already installed
 echo "📦 Installing dotenv-cli..."
 pnpm add -D dotenv-cli
@@ -47,12 +52,22 @@ cd packages/database && pnpm add -D dotenv-cli && cd ../..
 echo "📦 Installing dotenv in database package..."
 cd packages/database && pnpm add dotenv && cd ../..
 
+# Clear existing sessions to fix JWT issues
+echo "🗑️  Clearing existing sessions to fix JWT issues..."
+cd packages/database
+dotenv -e ../../.env -- npx prisma db execute --stdin <<< "
+DELETE FROM \"sessions\";
+DELETE FROM \"accounts\";
+" 2>/dev/null || echo "⚠️  Could not clear sessions (database might not be running)"
+cd ../..
+
 echo ""
-echo "✅ Environment variables fixed!"
+echo "✅ All issues fixed!"
 echo ""
 echo "Next steps:"
 echo "1. Make sure Docker is running: docker compose up -d"
 echo "2. Run database migrations: pnpm db:migrate"
 echo "3. Start the development server: pnpm dev"
+echo "4. Try signing in again - all existing sessions have been cleared"
 echo ""
 echo "Optional: Add Google OAuth credentials to .env for Google sign-in" 

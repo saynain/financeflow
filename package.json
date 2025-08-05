@@ -22,7 +22,9 @@
     "db:migrate": "cd packages/database && dotenv -e ../../.env -- npx prisma migrate dev",
     "db:studio": "cd packages/database && dotenv -e ../../.env -- npx prisma studio",
     "setup": "./setup.sh",
-    "fix-env": "./fix-env.sh"
+    "fix-env": "./fix-env.sh",
+    "fix-sessions": "./fix-sessions.sh",
+    "fix-all": "./fix-all.sh"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

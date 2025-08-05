@@ -88,6 +88,26 @@ Or run the fix script:
 pnpm fix-env
 ```
 
+### JWT Session Decryption Error
+If you see `[next-auth][error][JWT_SESSION_ERROR]` errors, this usually happens when the `NEXTAUTH_SECRET` was changed after sessions were created. Fix this by running:
+```bash
+./fix-sessions.sh
+# or
+pnpm fix-sessions
+```
+
+This will generate a new secret and clear all existing sessions.
+
+### Comprehensive Fix
+If you're experiencing multiple issues, run the comprehensive fix script:
+```bash
+./fix-all.sh
+# or
+pnpm fix-all
+```
+
+This script will fix all common issues including environment variables, JWT sessions, and dependencies.
+
 ### Database Connection Issues
 If you encounter database connection issues:
 1. Make sure Docker is running
