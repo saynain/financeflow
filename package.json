@@ -19,13 +19,14 @@
     "clean": "turbo clean && rm -rf node_modules",
     "db:generate": "turbo db:generate",
     "db:push": "turbo db:push",
-    "db:migrate": "pnpm --filter @financeflow/database db:migrate",
-    "db:studio": "pnpm --filter @financeflow/database db:studio",
+    "db:migrate": "cd packages/database && dotenv -e ../../.env -- prisma migrate dev",
+    "db:studio": "cd packages/database && dotenv -e ../../.env -- prisma studio",
     "setup": "./setup.sh",
     "fix-env": "./fix-env.sh"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "dotenv-cli": "^7.4.1",
     "prettier": "^3.2.4",
     "turbo": "^1.11.3",
     "typescript": "^5.3.3"

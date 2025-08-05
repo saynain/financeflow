@@ -38,6 +38,10 @@ if ! grep -q "NEXTAUTH_URL=" .env; then
   echo "✅ Added NEXTAUTH_URL"
 fi
 
+# Install dotenv-cli if not already installed
+echo "📦 Installing dotenv-cli..."
+pnpm add -D dotenv-cli
+
 echo ""
 echo "✅ Environment variables fixed!"
 echo ""

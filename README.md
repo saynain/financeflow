@@ -93,6 +93,7 @@ If you encounter database connection issues:
 1. Make sure Docker is running
 2. Check that the database containers are up: `docker compose ps`
 3. Verify your `DATABASE_URL` in `.env` matches the Docker Compose configuration
+4. If you get "Environment variable not found: DATABASE_URL" errors, run: `./fix-env.sh`
 
 ### Environment Variables
 The application requires these environment variables:

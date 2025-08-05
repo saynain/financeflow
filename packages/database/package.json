@@ -7,9 +7,9 @@
   "scripts": {
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "db:seed": "tsx src/seed.ts"
+    "db:migrate": "./run-with-env.sh 'prisma migrate dev'",
+    "db:studio": "./run-with-env.sh 'prisma studio'",
+    "db:seed": "./run-with-env.sh 'tsx src/seed.ts'"
   },
   "dependencies": {
     "@prisma/client": "^5.8.1",
