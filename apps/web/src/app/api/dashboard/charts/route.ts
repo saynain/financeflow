@@ -46,7 +46,7 @@ export async function GET() {
       })
     }
 
-    // Get expense breakdown for current month
+    // Get expense breakdown for current month by tags
     const currentMonthStart = startOfMonth(now)
     const currentMonthEnd = endOfMonth(now)
 
@@ -59,30 +59,33 @@ export async function GET() {
           lte: currentMonthEnd,
         },
       },
-      include: {
-        category: true,
-      },
     })
 
-    // Group expenses by category
-    const expensesByCategory = currentMonthExpenses.reduce((acc, transaction) => {
-      const categoryName = transaction.category.name
-      acc[categoryName] = (acc[categoryName] || 0) + transaction.amount.toNumber()
-      return acc
-    }, {} as Record<string, number>)
+    // Group expenses by tags
+    const expensesByTag: Record<string, number> = {}
+    currentMonthExpenses.forEach(transaction => {
+      if (transaction.tags && transaction.tags.length > 0) {
+        transaction.tags.forEach(tag => {
+          expensesByTag[tag] = (expensesByTag[tag] || 0) + transaction.amount.toNumber()
+        })
+      } else {
+        // If no tags, group under "Untagged"
+        expensesByTag['Untagged'] = (expensesByTag['Untagged'] || 0) + transaction.amount.toNumber()
+      }
+    })
 
     // Convert to array format for the chart
-    const expenseBreakdown = Object.entries(expensesByCategory)
+    const expenseBreakdown = Object.entries(expensesByTag)
       .map(([name, value]) => ({
         name,
         value,
       }))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 5) // Top 5 categories
+      .slice(0, 5) // Top 5 tags
 
     // Add "Others" category if there are more than 5
-    if (Object.keys(expensesByCategory).length > 5) {
-      const othersTotal = Object.entries(expensesByCategory)
+    if (Object.keys(expensesByTag).length > 5) {
+      const othersTotal = Object.entries(expensesByTag)
         .slice(5)
         .reduce((sum, [, value]) => sum + value, 0)
       
@@ -91,7 +94,7 @@ export async function GET() {
       }
     }
 
-    // Assign colors to categories
+    // Assign colors to tags
     const colors = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
     const expenseBreakdownWithColors = expenseBreakdown.map((item, index) => ({
       ...item,

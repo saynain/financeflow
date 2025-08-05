@@ -14,7 +14,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { amount, currency, type, description, date, categoryId } = body
+    const { amount, currency, type, description, date, tags } = body
 
     // Verify the transaction belongs to the user
     const existingTransaction = await prisma.transaction.findFirst({
@@ -28,6 +28,37 @@ export async function PUT(
       return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
     }
 
+    // Process tags - create new ones if they don't exist
+    const processedTags: string[] = []
+    if (tags && Array.isArray(tags)) {
+      for (const tagName of tags) {
+        if (typeof tagName === 'string' && tagName.trim()) {
+          const trimmedName = tagName.trim()
+          
+          // Check if tag exists, create if it doesn't
+          let tag = await prisma.tag.findUnique({
+            where: {
+              name_userId: {
+                name: trimmedName,
+                userId: session.user.id,
+              },
+            },
+          })
+
+          if (!tag) {
+            tag = await prisma.tag.create({
+              data: {
+                name: trimmedName,
+                userId: session.user.id,
+              },
+            })
+          }
+
+          processedTags.push(tag.name)
+        }
+      }
+    }
+
     const transaction = await prisma.transaction.update({
       where: { id: params.id },
       data: {
@@ -36,10 +67,7 @@ export async function PUT(
         type,
         description,
         date: new Date(date),
-        categoryId,
-      },
-      include: {
-        category: true,
+        tags: processedTags,
       },
     })
 

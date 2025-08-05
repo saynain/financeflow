@@ -16,22 +16,8 @@ export async function GET() {
     const monthStart = startOfMonth(now)
     const monthEnd = endOfMonth(now)
 
-    // Get all categories with their budget limits and parent info
-    const categories = await prisma.category.findMany({
-      where: { 
-        userId,
-        type: 'EXPENSE'
-      },
-      include: {
-        parent: true,
-        children: true,
-      },
-      orderBy: { name: 'asc' },
-    })
-
-    // Get current month's expenses grouped by category
-    const expenses = await prisma.transaction.groupBy({
-      by: ['categoryId'],
+    // Get current month's expenses grouped by tags
+    const transactions = await prisma.transaction.findMany({
       where: {
         userId,
         type: 'EXPENSE',
@@ -40,90 +26,50 @@ export async function GET() {
           lte: monthEnd,
         },
       },
-      _sum: {
+      select: {
         amount: true,
+        tags: true,
       },
     })
 
-    // Create a map of category spending
-    const spendingMap = new Map(
-      expenses.map(e => [e.categoryId, e._sum.amount?.toNumber() || 0])
-    )
-
-    // First, get all main categories (categories without parents)
-    const mainCategories = categories.filter(cat => !cat.parentId)
-    
-    // Create budget groups based on actual main categories
-    const budgetGroups = mainCategories.map(mainCat => {
-      // Get all subcategories for this main category
-      const subcategories = categories.filter(cat => cat.parentId === mainCat.id)
-      
-      // Calculate spending for subcategories
-      const categoryData = subcategories.map(subCat => ({
-        id: subCat.id,
-        name: subCat.name,
-        icon: subCat.icon,
-        budgetLimit: subCat.budgetLimit?.toNumber() || 0,
-        currency: subCat.currency || 'USD',
-        spent: spendingMap.get(subCat.id) || 0,
-        color: subCat.color,
-        parentId: subCat.parentId,
-      }))
-
-      const totalBudget = categoryData.reduce((sum, cat) => sum + cat.budgetLimit, 0)
-      const totalSpent = categoryData.reduce((sum, cat) => sum + cat.spent, 0)
-
-      return {
-        id: mainCat.id,
-        name: mainCat.name,
-        icon: mainCat.icon,
-        categories: categoryData,
-        totalBudget,
-        totalSpent,
+    // Group expenses by tags
+    const tagSpending: Record<string, number> = {}
+    transactions.forEach(transaction => {
+      if (transaction.tags && transaction.tags.length > 0) {
+        transaction.tags.forEach(tag => {
+          tagSpending[tag] = (tagSpending[tag] || 0) + Number(transaction.amount)
+        })
       }
     })
 
-    // Add any orphaned categories (without parent) that are not main categories
-    const orphanedCategories = categories.filter(cat => 
-      cat.parentId && !mainCategories.find(main => main.id === cat.parentId)
-    )
-
-    if (orphanedCategories.length > 0) {
-      const orphanedData = orphanedCategories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        icon: cat.icon,
-        budgetLimit: cat.budgetLimit?.toNumber() || 0,
-        currency: cat.currency || 'USD',
-        spent: spendingMap.get(cat.id) || 0,
-        color: cat.color,
-        parentId: cat.parentId,
+    // Convert to array and sort by spending
+    const tagGroups = Object.entries(tagSpending)
+      .map(([tag, spent]) => ({
+        id: tag,
+        name: tag,
+        icon: '🏷️',
+        categories: [{
+          id: tag,
+          name: tag,
+          icon: '🏷️',
+          budgetLimit: 0, // No budget limits for tags yet
+          currency: 'USD',
+          spent,
+          color: null,
+          parentId: null,
+        }],
+        totalBudget: 0,
+        totalSpent: spent,
       }))
+      .sort((a, b) => b.totalSpent - a.totalSpent)
 
-      budgetGroups.push({
-        id: 'other',
-        name: 'Other',
-        icon: '📦',
-        categories: orphanedData,
-        totalBudget: orphanedData.reduce((sum, cat) => sum + cat.budgetLimit, 0),
-        totalSpent: orphanedData.reduce((sum, cat) => sum + cat.spent, 0),
-      })
-    }
-
-    // Calculate totals
-    const allCategories = categories.filter(cat => cat.parentId) // Only subcategories have budgets
-    const totalBudget = allCategories.reduce((sum, cat) => sum + (cat.budgetLimit?.toNumber() || 0), 0)
-    const totalSpent = allCategories.reduce((sum, cat) => sum + (spendingMap.get(cat.id) || 0), 0)
+    const totalSpent = Object.values(tagSpending).reduce((sum, amount) => sum + amount, 0)
 
     return NextResponse.json({
-      budgets: budgetGroups.filter(group => group.categories.length > 0 || group.id !== 'other'),
-      totalBudget,
+      budgets: tagGroups,
+      totalBudget: 0, // No budget system for tags yet
       totalSpent,
-      mainCategories: mainCategories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        icon: cat.icon,
-      })),
+      mainCategories: [], // No categories in tag system
     })
   } catch (error) {
     console.error('Budgets fetch error:', error)
@@ -141,22 +87,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { categoryId, budgetLimit, currency } = body
-
-    // Update category budget limit
-    const category = await prisma.category.update({
-      where: {
-        id: categoryId,
-        userId: session.user.id, // Ensure user owns the category
-      },
-      data: {
-        budgetLimit,
-        currency: currency || 'USD',
-      },
-    })
-
-    return NextResponse.json(category)
+    // For now, return success but no-op since we don't have budget limits for tags
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Budget update error:', error)
     return NextResponse.json(

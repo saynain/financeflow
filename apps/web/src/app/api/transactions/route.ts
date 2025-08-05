@@ -16,9 +16,6 @@ export async function GET(request: Request) {
 
     const transactions = await prisma.transaction.findMany({
       where: { userId: session.user.id },
-      include: {
-        category: true,
-      },
       orderBy: { date: 'desc' },
       take: limit,
       skip: offset,
@@ -51,7 +48,38 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { amount, currency, type, description, date, categoryId } = body
+    const { amount, currency, type, description, date, tags } = body
+
+    // Process tags - create new ones if they don't exist
+    const processedTags: string[] = []
+    if (tags && Array.isArray(tags)) {
+      for (const tagName of tags) {
+        if (typeof tagName === 'string' && tagName.trim()) {
+          const trimmedName = tagName.trim()
+          
+          // Check if tag exists, create if it doesn't
+          let tag = await prisma.tag.findUnique({
+            where: {
+              name_userId: {
+                name: trimmedName,
+                userId: session.user.id,
+              },
+            },
+          })
+
+          if (!tag) {
+            tag = await prisma.tag.create({
+              data: {
+                name: trimmedName,
+                userId: session.user.id,
+              },
+            })
+          }
+
+          processedTags.push(tag.name)
+        }
+      }
+    }
 
     const transaction = await prisma.transaction.create({
       data: {
@@ -60,11 +88,8 @@ export async function POST(request: Request) {
         type,
         description,
         date: new Date(date),
-        categoryId,
+        tags: processedTags,
         userId: session.user.id,
-      },
-      include: {
-        category: true,
       },
     })
 

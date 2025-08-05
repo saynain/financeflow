@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import { 
   Plus, 
   Pencil, 
@@ -21,12 +22,12 @@ import {
   CheckCircle,
   Target,
   Calendar,
-  BarChart3
+  BarChart3,
+  Tag
 } from 'lucide-react'
-import { useBudgets } from '@/hooks/use-dashboard'
+import { useBudgetTags } from '@/hooks/use-budget-tags'
 import { Skeleton } from '@/components/ui/skeleton'
-import { BudgetForm } from '@/components/budget-form'
-import { CategoryForm } from '@/components/category-form'
+import { TransactionForm } from '@/components/transaction-form'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/currencies'
 import {
@@ -48,14 +49,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icons } from '@/components/ui/icons'
 
 export default function BudgetPage() {
-  const { data, isLoading } = useBudgets()
+  const { data, isLoading } = useBudgetTags()
   const queryClient = useQueryClient()
-  const [selectedCategory, setSelectedCategory] = useState<any>(null)
-  const [categoryFormOpen, setCategoryFormOpen] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<any>(null)
-  const [deletingCategory, setDeletingCategory] = useState<any>(null)
+  const [transactionFormOpen, setTransactionFormOpen] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
-  const [isDeleting, setIsDeleting] = useState(false)
   const [userCurrency, setUserCurrency] = useState<string | null>(null)
   const [monthlyIncome, setMonthlyIncome] = useState(0)
   const [isEditingIncome, setIsEditingIncome] = useState(false)
@@ -77,41 +74,10 @@ export default function BudgetPage() {
       })
   }, [])
 
-  const overallPercentage = data?.totalBudget ? (data.totalSpent / data.totalBudget) * 100 : 0
   const totalIncome = monthlyIncome
   const totalExpenses = data?.totalSpent || 0
   const savings = totalIncome - totalExpenses
   const savingsRate = totalIncome > 0 ? (savings / totalIncome) * 100 : 0
-
-  const deleteMutation = useMutation({
-    mutationFn: async (categoryId: string) => {
-      const response = await fetch(`/api/categories/${categoryId}`, {
-        method: 'DELETE',
-      })
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to delete category')
-      }
-      return response.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
-      queryClient.invalidateQueries({ queryKey: ['budgets'] })
-      setDeletingCategory(null)
-    },
-  })
-
-  const handleDeleteCategory = async () => {
-    if (!deletingCategory) return
-    setIsDeleting(true)
-    try {
-      await deleteMutation.mutateAsync(deletingCategory.id)
-    } catch (error) {
-      console.error('Error deleting category:', error)
-    } finally {
-      setIsDeleting(false)
-    }
-  }
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections(prev => ({
@@ -148,11 +114,11 @@ export default function BudgetPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold tracking-tight">Financial Planning</h1>
-          <p className="text-muted-foreground mt-2">Track your income, expenses, and savings goals</p>
+          <p className="text-muted-foreground mt-2">Track your income, expenses, and savings goals by tags</p>
         </div>
-        <Button onClick={() => setCategoryFormOpen(true)} size="lg">
+        <Button onClick={() => setTransactionFormOpen(true)} size="lg">
           <Plus className="mr-2 h-5 w-5" />
-          Add Category
+          Add Transaction
         </Button>
       </div>
 
@@ -287,13 +253,13 @@ export default function BudgetPage() {
               </span>
             </div>
             <div className="text-sm text-muted-foreground">
-              {data?.budgets.reduce((sum, group) => sum + group.categories.length, 0) || 0} active categories
+              {data?.tagGroups.length || 0} active tags
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Budget Categories with Modern UI */}
+      {/* Tag Groups */}
       {isLoading ? (
         <div className="space-y-6">
           {[1, 2, 3].map((i) => (
@@ -313,27 +279,22 @@ export default function BudgetPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {data?.budgets.map((section) => {
-            const sectionPercentage = section.totalBudget > 0 
-              ? (section.totalSpent / section.totalBudget) * 100 
-              : 0
-            const isExpanded = expandedSections[section.id] !== false // Default to expanded
-            const isOverBudget = sectionPercentage > 100
-            const isNearLimit = sectionPercentage > 80 && sectionPercentage <= 100
+          {data?.tagGroups.map((tagGroup) => {
+            const isExpanded = expandedSections[tagGroup.tag] !== false // Default to expanded
+            const percentageOfIncome = totalIncome > 0 ? (tagGroup.totalSpent / totalIncome) * 100 : 0
+            const isHighSpending = percentageOfIncome > 20 // More than 20% of income
 
             return (
-              <Card key={section.id} className={cn(
+              <Card key={tagGroup.tag} className={cn(
                 "overflow-hidden transition-all hover:shadow-lg",
-                isOverBudget && "border-red-300 bg-red-50/30",
-                isNearLimit && "border-yellow-300 bg-yellow-50/30"
+                isHighSpending && "border-orange-300 bg-orange-50/30"
               )}>
                 <CardHeader 
                   className={cn(
                     "cursor-pointer transition-colors",
-                    isOverBudget && "bg-red-50/50",
-                    isNearLimit && "bg-yellow-50/50"
+                    isHighSpending && "bg-orange-50/50"
                   )}
-                  onClick={() => toggleSection(section.id)}
+                  onClick={() => toggleSection(tagGroup.tag)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -343,7 +304,7 @@ export default function BudgetPage() {
                         className="h-8 w-8"
                         onClick={(e) => {
                           e.stopPropagation()
-                          toggleSection(section.id)
+                          toggleSection(tagGroup.tag)
                         }}
                       >
                         {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -351,28 +312,22 @@ export default function BudgetPage() {
                       <div className="flex items-center gap-3">
                         <div className={cn(
                           "p-3 rounded-full",
-                          isOverBudget && "bg-red-100",
-                          isNearLimit && "bg-yellow-100",
-                          !isOverBudget && !isNearLimit && "bg-blue-100"
+                          isHighSpending && "bg-orange-100",
+                          !isHighSpending && "bg-blue-100"
                         )}>
-                          <span className="text-2xl">{section.icon || '📊'}</span>
+                          <Tag className="h-6 w-6" />
                         </div>
                         <div>
                           <CardTitle className="text-xl flex items-center gap-2">
-                            {section.name}
-                            {isOverBudget && (
-                              <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium">
-                                Over Budget
-                              </span>
-                            )}
-                            {isNearLimit && (
-                              <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 font-medium">
-                                Near Limit
+                            {tagGroup.tag}
+                            {isHighSpending && (
+                              <span className="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-700 font-medium">
+                                High Spending
                               </span>
                             )}
                           </CardTitle>
                           <CardDescription className="mt-1">
-                            {formatCurrency(section.totalSpent, userCurrency)} of {formatCurrency(section.totalBudget, userCurrency)} spent
+                            {formatCurrency(tagGroup.totalSpent, userCurrency)} spent • {tagGroup.transactionCount} transactions
                           </CardDescription>
                         </div>
                       </div>
@@ -381,178 +336,57 @@ export default function BudgetPage() {
                       <div className="text-right">
                         <p className={cn(
                           "text-2xl font-bold",
-                          isOverBudget && "text-red-600",
-                          isNearLimit && "text-yellow-600",
-                          !isOverBudget && !isNearLimit && "text-blue-600"
+                          isHighSpending && "text-orange-600",
+                          !isHighSpending && "text-blue-600"
                         )}>
-                          {sectionPercentage.toFixed(0)}%
+                          {percentageOfIncome.toFixed(1)}%
                         </p>
-                        <p className="text-xs text-muted-foreground">used</p>
+                        <p className="text-xs text-muted-foreground">of income</p>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => {
-                            setEditingCategory({
-                              id: section.id,
-                              name: section.name,
-                              icon: section.icon,
-                              isMainCategory: true,
-                            })
-                            setCategoryFormOpen(true)
-                          }}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit Category
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => setDeletingCategory({
-                              id: section.id,
-                              name: section.name,
-                              icon: section.icon,
-                              isMainCategory: true,
-                            })}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Category
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </div>
                   </div>
                   <Progress 
-                    value={Math.min(sectionPercentage, 100)} 
+                    value={Math.min(percentageOfIncome, 100)} 
                     className={cn(
                       "h-3 mt-4",
-                      isOverBudget && "[&>div]:bg-red-500",
-                      isNearLimit && "[&>div]:bg-yellow-500",
-                      !isOverBudget && !isNearLimit && "[&>div]:bg-blue-500"
+                      isHighSpending && "[&>div]:bg-orange-500",
+                      !isHighSpending && "[&>div]:bg-blue-500"
                     )}
                   />
                 </CardHeader>
                 
                 {isExpanded && (
                   <CardContent className="pt-0">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {section.categories.map((category) => {
-                        const percentage = category.budgetLimit > 0 
-                          ? (category.spent / category.budgetLimit) * 100 
-                          : 0
-                        const isOverBudget = percentage > 100
-                        const isNearLimit = percentage > 80 && percentage <= 100
-
-                        return (
-                          <div 
-                            key={category.id} 
-                            className={cn(
-                              "group relative p-4 rounded-xl border-2 transition-all hover:shadow-md hover:scale-105",
-                              isOverBudget && "border-red-300 bg-red-50/50",
-                              isNearLimit && "border-yellow-300 bg-yellow-50/50",
-                              !isOverBudget && !isNearLimit && "border-gray-200 bg-white hover:border-blue-300"
-                            )}
-                          >
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center gap-3">
-                                {category.icon && (
-                                  <div className={cn(
-                                    "p-2 rounded-full",
-                                    isOverBudget && "bg-red-100",
-                                    isNearLimit && "bg-yellow-100",
-                                    !isOverBudget && !isNearLimit && "bg-blue-100"
-                                  )}>
-                                    <span className="text-lg">{category.icon}</span>
-                                  </div>
-                                )}
-                                <div>
-                                  <h4 className="font-semibold text-sm">{category.name}</h4>
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatCurrency(category.spent, category.currency || userCurrency)} / {formatCurrency(category.budgetLimit, category.currency || userCurrency)}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => setSelectedCategory(category)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button size="sm" variant="ghost">
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => {
-                                      setEditingCategory({
-                                        id: category.id,
-                                        name: category.name,
-                                        icon: category.icon,
-                                        budgetLimit: category.budgetLimit,
-                                        parentId: category.parentId,
-                                        isMainCategory: false,
-                                      })
-                                      setCategoryFormOpen(true)
-                                    }}>
-                                      <Pencil className="mr-2 h-4 w-4" />
-                                      Edit Category
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => setDeletingCategory({
-                                        id: category.id,
-                                        name: category.name,
-                                        icon: category.icon,
-                                        isMainCategory: false,
-                                      })}
-                                      className="text-destructive focus:text-destructive"
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Delete Category
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
+                    <div className="space-y-3">
+                      {tagGroup.transactions.map((transaction) => (
+                        <div 
+                          key={transaction.id} 
+                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "p-2 rounded-full",
+                              transaction.type === 'INCOME' ? "bg-green-100" : "bg-red-100"
+                            )}>
+                              {transaction.type === 'INCOME' ? '💰' : '💸'}
                             </div>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className={cn(
-                                "text-sm font-medium",
-                                isOverBudget && "text-red-600",
-                                isNearLimit && "text-yellow-600",
-                                !isOverBudget && !isNearLimit && "text-blue-600"
-                              )}>
-                                {percentage.toFixed(0)}% used
-                              </span>
-                              {isOverBudget && (
-                                <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium">
-                                  Over budget
-                                </span>
-                              )}
-                              {isNearLimit && (
-                                <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 font-medium">
-                                  Near limit
-                                </span>
-                              )}
+                            <div>
+                              <p className="font-medium text-sm">
+                                {transaction.type === 'INCOME' ? 'Income' : 'Expense'}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(transaction.date).toLocaleDateString()}
+                              </p>
                             </div>
-                            <Progress 
-                              value={Math.min(percentage, 100)} 
-                              className={cn(
-                                "h-2",
-                                isOverBudget && "[&>div]:bg-red-500",
-                                isNearLimit && "[&>div]:bg-yellow-500",
-                                !isOverBudget && !isNearLimit && "[&>div]:bg-blue-500"
-                              )}
-                            />
                           </div>
-                        )
-                      })}
+                          <div className={cn(
+                            "text-lg font-semibold",
+                            transaction.type === 'INCOME' ? "text-green-600" : "text-red-600"
+                          )}>
+                            {transaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(transaction.amount, userCurrency)}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 )}
@@ -562,47 +396,11 @@ export default function BudgetPage() {
         </div>
       )}
 
-      {/* Budget Form Modal */}
-      {selectedCategory && (
-        <BudgetForm
-          open={!!selectedCategory}
-          onOpenChange={(open) => !open && setSelectedCategory(null)}
-          category={selectedCategory}
-        />
-      )}
-
-      {/* Category Form Modal */}
-      <CategoryForm
-        open={categoryFormOpen}
-        onOpenChange={(open) => {
-          setCategoryFormOpen(open)
-          if (!open) setEditingCategory(null)
-        }}
-        mainCategories={data?.mainCategories || []}
-        category={editingCategory}
+      {/* Transaction Form Modal */}
+      <TransactionForm
+        open={transactionFormOpen}
+        onOpenChange={setTransactionFormOpen}
       />
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deletingCategory} onOpenChange={() => setDeletingCategory(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Category</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete "{deletingCategory?.name}"? 
-              {deletingCategory?.isMainCategory && " All subcategories must be deleted first."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeletingCategory(null)} disabled={isDeleting}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteCategory} disabled={isDeleting}>
-              {isDeleting && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

@@ -26,6 +26,7 @@ model User {
   savingsGoals SavingsGoal[]
   portfolios   Portfolio[]
   bankAccounts BankAccount[]
+  tags         Tag[]
 
   @@map("users")
 }
@@ -96,7 +97,6 @@ model Category {
   budget       Budget?       @relation(fields: [budgetId], references: [id])
   parent       Category?     @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children     Category[]    @relation("CategoryHierarchy")
-  transactions Transaction[]
 
   @@map("categories")
 }
@@ -108,13 +108,12 @@ model Transaction {
   type        TransactionType
   description String?
   date        DateTime
-  categoryId  String
+  tags        String[]        @default([]) // Array of tag strings
   portfolioId String?
   userId      String
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  category Category @relation(fields: [categoryId], references: [id])
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   portfolio Portfolio? @relation(fields: [portfolioId], references: [id])
 
@@ -174,6 +173,19 @@ model BankAccount {
   portfolio Portfolio? @relation(fields: [portfolioId], references: [id])
 
   @@map("bank_accounts")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([name, userId])
+  @@map("tags")
 }
 
 enum Period {

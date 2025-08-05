@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { format } from 'date-fns'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, DollarSign, Plus, X, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -17,25 +17,18 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { useCategories } from '@/hooks/use-dashboard'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icons } from '@/components/ui/icons'
 import { getCurrencyByCode } from '@/lib/currencies'
+import { TagInput } from '@/components/tag-input'
+import { Transaction } from '@/types/transaction'
 
 const transactionSchema = z.object({
   amount: z.string().min(1, 'Amount is required'),
-  currency: z.string().min(1, 'Currency is required'),
   type: z.enum(['INCOME', 'EXPENSE']),
-  description: z.string().optional(),
+  description: z.string().min(1, 'Description is required'),
   date: z.string().min(1, 'Date is required'),
-  categoryId: z.string().min(1, 'Category is required'),
+  tags: z.array(z.string()).optional(),
 })
 
 type TransactionFormData = z.infer<typeof transactionSchema>
@@ -43,22 +36,14 @@ type TransactionFormData = z.infer<typeof transactionSchema>
 interface TransactionFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  transaction?: {
-    id: string
-    amount: number
-    currency: string
-    type: 'INCOME' | 'EXPENSE'
-    description: string | null
-    date: string
-    categoryId: string
-  }
+  transaction?: Transaction
 }
 
 export function TransactionForm({ open, onOpenChange, transaction }: TransactionFormProps) {
   const queryClient = useQueryClient()
-  const { data: categories, isLoading: categoriesLoading } = useCategories()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [userCurrency, setUserCurrency] = useState<string | null>(null)
+  const [userCurrency, setUserCurrency] = useState<string>('USD')
+  const [tags, setTags] = useState<string[]>([])
 
   const {
     register,
@@ -72,18 +57,26 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
     defaultValues: transaction
       ? {
           amount: transaction.amount.toString(),
-          currency: transaction.currency,
           type: transaction.type,
           description: transaction.description || '',
           date: format(new Date(transaction.date), 'yyyy-MM-dd'),
-          categoryId: transaction.categoryId,
+          tags: transaction.tags || [],
         }
       : {
-          currency: 'USD', // Will be updated when userCurrency is loaded
           type: 'EXPENSE',
           date: format(new Date(), 'yyyy-MM-dd'),
+          tags: [],
         },
   })
+
+  // Initialize tags when transaction changes
+  useEffect(() => {
+    if (transaction) {
+      setTags(transaction.tags || [])
+    } else {
+      setTags([])
+    }
+  }, [transaction])
 
   // Fetch user currency on component mount
   useEffect(() => {
@@ -92,18 +85,12 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
       .then(data => {
         const currency = data.currency || 'USD'
         setUserCurrency(currency)
-        if (!transaction) {
-          setValue('currency', currency)
-        }
       })
       .catch(error => {
         console.error('Error fetching currency:', error)
         setUserCurrency('USD')
-        if (!transaction) {
-          setValue('currency', 'USD')
-        }
       })
-  }, [transaction, setValue])
+  }, [])
 
   const transactionType = watch('type')
 
@@ -115,6 +102,8 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
         body: JSON.stringify({
           ...data,
           amount: parseFloat(data.amount),
+          currency: userCurrency,
+          tags,
         }),
       })
       if (!response.ok) throw new Error('Failed to create transaction')
@@ -124,6 +113,7 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       reset()
+      setTags([])
       onOpenChange(false)
     },
   })
@@ -136,6 +126,8 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
         body: JSON.stringify({
           ...data,
           amount: parseFloat(data.amount),
+          currency: userCurrency,
+          tags,
         }),
       })
       if (!response.ok) throw new Error('Failed to update transaction')
@@ -145,6 +137,7 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       reset()
+      setTags([])
       onOpenChange(false)
     },
   })
@@ -164,116 +157,90 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
     }
   }
 
-  const filteredCategories = categories?.filter(cat => cat.type === transactionType) || []
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>{transaction ? 'Edit' : 'Add'} Transaction</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {transaction ? <Pencil className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+              {transaction ? 'Edit' : 'Add'} Transaction
+            </DialogTitle>
             <DialogDescription>
-              {transaction ? 'Update the' : 'Enter'} transaction details below
+              {transaction ? 'Update the' : 'Add a new'} transaction details
             </DialogDescription>
           </DialogHeader>
+          
           <div className="grid gap-4 py-4">
+            {/* Transaction Type */}
             <div className="grid gap-2">
-              <Label htmlFor="type">Type</Label>
-              <Select
-                value={transactionType}
-                onValueChange={(value) => {
-                  setValue('type', value as 'INCOME' | 'EXPENSE')
-                  setValue('categoryId', '') // Reset category when type changes
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="INCOME">Income</SelectItem>
-                  <SelectItem value="EXPENSE">Expense</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Type</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={transactionType === 'EXPENSE' ? 'default' : 'outline'}
+                  className="flex-1"
+                  onClick={() => setValue('type', 'EXPENSE')}
+                >
+                  Expense
+                </Button>
+                <Button
+                  type="button"
+                  variant={transactionType === 'INCOME' ? 'default' : 'outline'}
+                  className="flex-1"
+                  onClick={() => setValue('type', 'INCOME')}
+                >
+                  Income
+                </Button>
+              </div>
             </div>
 
+            {/* Amount */}
             <div className="grid gap-2">
               <Label htmlFor="amount">Amount</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                    {getCurrencyByCode(watch('currency'))?.symbol || '$'}
-                  </span>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    className="pl-8"
-                    {...register('amount')}
-                  />
-                </div>
-                <Select
-                  value={watch('currency')}
-                  onValueChange={(value) => setValue('currency', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="JPY">JPY</SelectItem>
-                    <SelectItem value="CAD">CAD</SelectItem>
-                    <SelectItem value="AUD">AUD</SelectItem>
-                    <SelectItem value="CHF">CHF</SelectItem>
-                    <SelectItem value="CNY">CNY</SelectItem>
-                    <SelectItem value="SEK">SEK</SelectItem>
-                    <SelectItem value="NOK">NOK</SelectItem>
-                    <SelectItem value="DKK">DKK</SelectItem>
-                    <SelectItem value="PLN">PLN</SelectItem>
-                    <SelectItem value="CZK">CZK</SelectItem>
-                    <SelectItem value="HUF">HUF</SelectItem>
-                    <SelectItem value="BRL">BRL</SelectItem>
-                    <SelectItem value="INR">INR</SelectItem>
-                    <SelectItem value="KRW">KRW</SelectItem>
-                    <SelectItem value="SGD">SGD</SelectItem>
-                    <SelectItem value="HKD">HKD</SelectItem>
-                    <SelectItem value="NZD">NZD</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  {getCurrencyByCode(userCurrency)?.symbol || '$'}
+                </span>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  className="pl-8"
+                  {...register('amount')}
+                />
               </div>
               {errors.amount && (
                 <p className="text-sm text-red-600">{errors.amount.message}</p>
               )}
             </div>
 
+            {/* Description */}
             <div className="grid gap-2">
-              <Label htmlFor="category">Category</Label>
-              <Select
-                value={watch('categoryId')}
-                onValueChange={(value) => setValue('categoryId', value)}
-                disabled={categoriesLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredCategories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <span className="flex items-center gap-2">
-                        <span>{category.icon}</span>
-                        <span>{category.name}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.categoryId && (
-                <p className="text-sm text-red-600">{errors.categoryId.message}</p>
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                placeholder="e.g., Grocery shopping, Salary deposit"
+                {...register('description')}
+              />
+              {errors.description && (
+                <p className="text-sm text-red-600">{errors.description.message}</p>
               )}
             </div>
 
+            {/* Tags */}
+            <div className="grid gap-2">
+              <Label htmlFor="tags">Tags</Label>
+              <TagInput
+                value={tags}
+                onChange={setTags}
+                placeholder="Add tags like 'groceries', 'entertainment'..."
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {/* Date */}
             <div className="grid gap-2">
               <Label htmlFor="date">Date</Label>
               <Input
@@ -285,16 +252,8 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
                 <p className="text-sm text-red-600">{errors.date.message}</p>
               )}
             </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description (optional)</Label>
-              <Input
-                id="description"
-                placeholder="e.g., Grocery shopping at Walmart"
-                {...register('description')}
-              />
-            </div>
           </div>
+          
           <DialogFooter>
             <Button
               type="button"

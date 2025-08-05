@@ -14,36 +14,32 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { name, icon, color, budgetLimit, currency } = body
+    const { name } = body
 
-    // Verify the category belongs to the user
-    const existingCategory = await prisma.category.findFirst({
+    // Verify the tag belongs to the user
+    const existingTag = await prisma.tag.findFirst({
       where: {
         id: params.id,
         userId: session.user.id,
       },
     })
 
-    if (!existingCategory) {
-      return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+    if (!existingTag) {
+      return NextResponse.json({ error: 'Tag not found' }, { status: 404 })
     }
 
-    const category = await prisma.category.update({
+    const tag = await prisma.tag.update({
       where: { id: params.id },
       data: {
         name,
-        icon,
-        color,
-        budgetLimit,
-        currency: currency || 'USD',
       },
     })
 
-    return NextResponse.json(category)
+    return NextResponse.json(tag)
   } catch (error) {
-    console.error('Category update error:', error)
+    console.error('Tag update error:', error)
     return NextResponse.json(
-      { error: 'Failed to update category' },
+      { error: 'Failed to update tag' },
       { status: 500 }
     )
   }
@@ -59,45 +55,31 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if category belongs to user and has no transactions
-    const category = await prisma.category.findFirst({
+    // Check if tag belongs to user
+    const tag = await prisma.tag.findFirst({
       where: {
         id: params.id,
         userId: session.user.id,
       },
-      include: {
-        transactions: true,
-        children: true,
-      },
     })
 
-    if (!category) {
-      return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+    if (!tag) {
+      return NextResponse.json({ error: 'Tag not found' }, { status: 404 })
     }
 
-    if (category.transactions.length > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete category with transactions' },
-        { status: 400 }
-      )
-    }
+    // Note: We don't delete tags that are in use by transactions
+    // Tags are automatically created when used in transactions
+    // This endpoint is mainly for cleanup of unused tags
 
-    if (category.children.length > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete category with subcategories' },
-        { status: 400 }
-      )
-    }
-
-    await prisma.category.delete({
+    await prisma.tag.delete({
       where: { id: params.id },
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Category deletion error:', error)
+    console.error('Tag deletion error:', error)
     return NextResponse.json(
-      { error: 'Failed to delete category' },
+      { error: 'Failed to delete tag' },
       { status: 500 }
     )
   }

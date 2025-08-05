@@ -1,3 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
+import { Transaction } from '@/types/transaction'
+
 interface BudgetCategory {
   id: string
   name: string
@@ -36,7 +39,7 @@ export function useBudgets() {
       return response.json()
     },
   })
-}import { useQuery } from '@tanstack/react-query'
+}
 
 interface DashboardStats {
   totalBalance: number
@@ -62,20 +65,6 @@ export function useDashboardStats() {
       return response.json()
     },
   })
-}
-
-interface Transaction {
-  id: string
-  amount: number
-  currency: string
-  type: 'INCOME' | 'EXPENSE'
-  description: string | null
-  date: string
-  category: {
-    id: string
-    name: string
-    icon: string | null
-  }
 }
 
 interface TransactionsResponse {

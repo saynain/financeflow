@@ -5,6 +5,7 @@ import { MoreHorizontal, Pencil, Trash } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { formatCurrency } from '@/lib/currencies'
 import {
   DropdownMenu,
@@ -24,40 +25,14 @@ import {
 import { TransactionForm } from '@/components/transaction-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icons } from '@/components/ui/icons'
-
-interface Transaction {
-  id: string
-  amount: number
-  currency: string
-  type: 'INCOME' | 'EXPENSE'
-  description: string | null
-  date: string
-  category: {
-    id: string
-    name: string
-    icon: string | null
-  }
-}
+import { Transaction } from '@/types/transaction'
 
 interface TransactionItemProps {
   transaction: Transaction
-  showCategory?: boolean
+  showTags?: boolean
 }
 
-const categoryColors: Record<string, string> = {
-  'Food & Dining': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  'Housing': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  'Utilities': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  'Transportation': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  'Entertainment': 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300',
-  'Shopping': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-  'Healthcare': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  'Salary': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',
-  'Freelance': 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300',
-  'Other': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
-}
-
-export function TransactionItem({ transaction, showCategory = true }: TransactionItemProps) {
+export function TransactionItem({ transaction, showTags = true }: TransactionItemProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -95,18 +70,24 @@ export function TransactionItem({ transaction, showCategory = true }: Transactio
       <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors group">
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center text-2xl">
-            {transaction.category.icon || (transaction.type === 'INCOME' ? '💰' : '💸')}
+            {transaction.type === 'INCOME' ? '💰' : '💸'}
           </div>
           <div>
-            <p className="font-medium">{transaction.description || transaction.category.name}</p>
+            <p className="font-medium">{transaction.description || 'Transaction'}</p>
             <div className="flex items-center gap-2 mt-1">
-              {showCategory && (
-                <span className={cn(
-                  "text-xs px-2 py-1 rounded-full font-medium",
-                  categoryColors[transaction.category.name] || 'bg-gray-100 text-gray-800'
-                )}>
-                  {transaction.category.name}
-                </span>
+              {showTags && transaction.tags && transaction.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {transaction.tags.slice(0, 3).map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {transaction.tags.length > 3 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{transaction.tags.length - 3} more
+                    </Badge>
+                  )}
+                </div>
               )}
               <span className="text-sm text-muted-foreground">
                 {format(new Date(transaction.date), 'MMM d, yyyy')}
@@ -154,7 +135,7 @@ export function TransactionItem({ transaction, showCategory = true }: Transactio
       <TransactionForm
         open={editOpen}
         onOpenChange={setEditOpen}
-        transaction={{ ...transaction, categoryId: transaction.category.id }}
+        transaction={transaction}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -169,13 +150,22 @@ export function TransactionItem({ transaction, showCategory = true }: Transactio
           <div className="py-4">
             <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
               <div className="h-12 w-12 rounded-lg bg-background flex items-center justify-center text-2xl">
-                {transaction.category.icon || '💸'}
+                {transaction.type === 'INCOME' ? '💰' : '💸'}
               </div>
               <div className="flex-1">
-                <p className="font-medium">{transaction.description || transaction.category.name}</p>
+                <p className="font-medium">{transaction.description || 'Transaction'}</p>
                 <p className="text-sm text-muted-foreground">
                   {format(new Date(transaction.date), 'MMMM d, yyyy')}
                 </p>
+                {transaction.tags && transaction.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {transaction.tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className={cn(
                 "text-lg font-semibold",
