@@ -19,7 +19,21 @@ fi
 if [ ! -f .env ]; then
   cp .env.example .env
   echo "✅ Created .env file from .env.example"
-  echo "⚠️  Please update the .env file with your values"
+  
+  # Generate a secure NEXTAUTH_SECRET if not already set
+  if ! grep -q "NEXTAUTH_SECRET=" .env || grep -q "your-secret-key-here" .env; then
+    SECRET=$(openssl rand -base64 32)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      # macOS
+      sed -i '' "s/NEXTAUTH_SECRET=.*/NEXTAUTH_SECRET=\"$SECRET\"/" .env
+    else
+      # Linux
+      sed -i "s/NEXTAUTH_SECRET=.*/NEXTAUTH_SECRET=\"$SECRET\"/" .env
+    fi
+    echo "✅ Generated secure NEXTAUTH_SECRET"
+  fi
+  
+  echo "⚠️  Please update the .env file with your Google OAuth credentials (optional)"
 fi
 
 # Install dependencies

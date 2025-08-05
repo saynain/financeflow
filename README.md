@@ -44,7 +44,16 @@ pnpm install
 
 3. Set up environment variables
 ```bash
+# Option 1: Use the setup script (recommended)
+./setup.sh
+# or
+pnpm setup
+
+# Option 2: Manual setup
 cp .env.example .env
+# Generate a secure NEXTAUTH_SECRET
+openssl rand -base64 32
+# Update .env with the generated secret
 ```
 
 4. Start the database
@@ -63,6 +72,34 @@ pnpm dev
 ```
 
 Visit http://localhost:3000 to see the application.
+
+## Troubleshooting
+
+### NextAuth Secret Error
+If you see `[next-auth][error][NO_SECRET]` errors, make sure you have a secure `NEXTAUTH_SECRET` in your `.env` file. You can generate one with:
+```bash
+openssl rand -base64 32
+```
+
+Or run the fix script:
+```bash
+./fix-env.sh
+# or
+pnpm fix-env
+```
+
+### Database Connection Issues
+If you encounter database connection issues:
+1. Make sure Docker is running
+2. Check that the database containers are up: `docker compose ps`
+3. Verify your `DATABASE_URL` in `.env` matches the Docker Compose configuration
+
+### Environment Variables
+The application requires these environment variables:
+- `DATABASE_URL`: PostgreSQL connection string
+- `NEXTAUTH_SECRET`: Secure random string for session encryption
+- `NEXTAUTH_URL`: Your application URL (http://localhost:3000 for development)
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: Optional, for Google OAuth
 
 ## Contributing
 

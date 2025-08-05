@@ -20,7 +20,9 @@
     "db:generate": "turbo db:generate",
     "db:push": "turbo db:push",
     "db:migrate": "pnpm --filter @financeflow/database db:migrate",
-    "db:studio": "pnpm --filter @financeflow/database db:studio"
+    "db:studio": "pnpm --filter @financeflow/database db:studio",
+    "setup": "./setup.sh",
+    "fix-env": "./fix-env.sh"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
