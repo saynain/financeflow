@@ -64,6 +64,7 @@ export async function GET() {
         name: subCat.name,
         icon: subCat.icon,
         budgetLimit: subCat.budgetLimit?.toNumber() || 0,
+        currency: subCat.currency || 'USD',
         spent: spendingMap.get(subCat.id) || 0,
         color: subCat.color,
         parentId: subCat.parentId,
@@ -93,6 +94,7 @@ export async function GET() {
         name: cat.name,
         icon: cat.icon,
         budgetLimit: cat.budgetLimit?.toNumber() || 0,
+        currency: cat.currency || 'USD',
         spent: spendingMap.get(cat.id) || 0,
         color: cat.color,
         parentId: cat.parentId,
@@ -140,7 +142,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { categoryId, budgetLimit } = body
+    const { categoryId, budgetLimit, currency } = body
 
     // Update category budget limit
     const category = await prisma.category.update({
@@ -150,6 +152,7 @@ export async function POST(request: Request) {
       },
       data: {
         budgetLimit,
+        currency: currency || 'USD',
       },
     })
 

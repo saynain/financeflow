@@ -3,12 +3,16 @@ interface BudgetCategory {
   name: string
   icon: string | null
   budgetLimit: number
+  currency: string
   spent: number
   color: string | null
+  parentId: string | null
 }
 
 interface BudgetGroup {
+  id: string
   name: string
+  icon: string | null
   categories: BudgetCategory[]
   totalBudget: number
   totalSpent: number
@@ -18,6 +22,7 @@ interface BudgetsResponse {
   budgets: BudgetGroup[]
   totalBudget: number
   totalSpent: number
+  mainCategories: { id: string; name: string; icon: string | null }[]
 }
 
 export function useBudgets() {
@@ -38,6 +43,7 @@ interface DashboardStats {
   monthlyIncome: number
   monthlyExpenses: number
   savingsRate: number
+  currency: string
   changes: {
     income: number
     expenses: number
@@ -61,6 +67,7 @@ export function useDashboardStats() {
 interface Transaction {
   id: string
   amount: number
+  currency: string
   type: 'INCOME' | 'EXPENSE'
   description: string | null
   date: string

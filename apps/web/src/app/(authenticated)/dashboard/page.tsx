@@ -12,6 +12,7 @@ import { format } from 'date-fns'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TransactionForm } from '@/components/transaction-form'
 import { TransactionItem } from '@/components/transaction-item'
+import { formatCurrency } from '@/lib/currencies'
 
 export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
@@ -95,7 +96,7 @@ export default function DashboardPage() {
                   <div className="text-2xl font-bold">
                     {stat.isPercentage 
                       ? `${stat.value.toFixed(1)}%`
-                      : `$${stat.value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                      : formatCurrency(stat.value, stats?.currency || 'USD')
                     }
                   </div>
                   <div className="flex items-center text-xs">

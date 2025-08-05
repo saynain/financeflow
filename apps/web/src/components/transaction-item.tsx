@@ -5,6 +5,7 @@ import { MoreHorizontal, Pencil, Trash } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { formatCurrency } from '@/lib/currencies'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,7 @@ import { Icons } from '@/components/ui/icons'
 interface Transaction {
   id: string
   amount: number
+  currency: string
   type: 'INCOME' | 'EXPENSE'
   description: string | null
   date: string
@@ -117,7 +119,7 @@ export function TransactionItem({ transaction, showCategory = true }: Transactio
             "text-lg font-semibold",
             transaction.type === 'INCOME' ? "text-green-600" : "text-red-600"
           )}>
-            {transaction.type === 'INCOME' ? '+' : '-'}${Number(transaction.amount).toFixed(2)}
+            {transaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(Number(transaction.amount), transaction.currency)}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -152,7 +154,7 @@ export function TransactionItem({ transaction, showCategory = true }: Transactio
       <TransactionForm
         open={editOpen}
         onOpenChange={setEditOpen}
-        transaction={transaction}
+        transaction={{ ...transaction, categoryId: transaction.category.id }}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -179,7 +181,7 @@ export function TransactionItem({ transaction, showCategory = true }: Transactio
                 "text-lg font-semibold",
                 transaction.type === 'INCOME' ? "text-green-600" : "text-red-600"
               )}>
-                {transaction.type === 'INCOME' ? '+' : '-'}${Number(transaction.amount).toFixed(2)}
+                {transaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(Number(transaction.amount), transaction.currency)}
               </div>
             </div>
           </div>

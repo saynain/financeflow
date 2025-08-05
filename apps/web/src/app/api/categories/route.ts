@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, type, icon, color, budgetLimit, parentId, isMainCategory } = body
+    const { name, type, icon, color, budgetLimit, currency, parentId, isMainCategory } = body
 
     // If creating a main category, ensure it has no parent
     if (isMainCategory) {
@@ -44,6 +44,7 @@ export async function POST(request: Request) {
           icon,
           color,
           budgetLimit: null, // Main categories don't have budgets
+          currency: currency || 'USD',
           parentId: null,
           userId: session.user.id,
         },
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
         icon,
         color,
         budgetLimit,
+        currency: currency || 'USD',
         parentId,
         userId: session.user.id,
       },

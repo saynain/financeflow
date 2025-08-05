@@ -51,11 +51,12 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { amount, type, description, date, categoryId } = body
+    const { amount, currency, type, description, date, categoryId } = body
 
     const transaction = await prisma.transaction.create({
       data: {
         amount,
+        currency: currency || 'USD',
         type,
         description,
         date: new Date(date),

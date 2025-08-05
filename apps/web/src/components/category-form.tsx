@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -26,12 +26,14 @@ import { Icons } from '@/components/ui/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
+import { getCurrencyByCode } from '@/lib/currencies'
 
 const categorySchema = z.object({
   name: z.string().min(1, 'Category name is required'),
   type: z.enum(['INCOME', 'EXPENSE']),
   icon: z.string().optional(),
   budgetLimit: z.string().optional(),
+  currency: z.string().optional(),
   parentId: z.string().optional(),
   isMainCategory: z.boolean().default(false),
 })
@@ -78,6 +80,7 @@ export function CategoryForm({ open, onOpenChange, mainCategories = [], category
   const [selectedIcon, setSelectedIcon] = useState(category?.icon || '')
   const [customEmoji, setCustomEmoji] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
+  const [userCurrency, setUserCurrency] = useState<string | null>(null)
 
   const {
     register,
@@ -93,14 +96,32 @@ export function CategoryForm({ open, onOpenChange, mainCategories = [], category
       type: 'EXPENSE',
       icon: category.icon || '',
       budgetLimit: category.budgetLimit?.toString(),
+      currency: 'USD', // Will be updated when userCurrency is loaded
       parentId: category.parentId || undefined,
       isMainCategory: category.isMainCategory || !category.parentId,
     } : {
       type: 'EXPENSE',
       icon: '',
+      currency: 'USD', // Will be updated when userCurrency is loaded
       isMainCategory: false,
     },
   })
+
+  // Fetch user currency on component mount
+  useEffect(() => {
+    fetch('/api/user/currency')
+      .then(res => res.json())
+      .then(data => {
+        const currency = data.currency || 'USD'
+        setUserCurrency(currency)
+        setValue('currency', currency)
+      })
+      .catch(error => {
+        console.error('Error fetching currency:', error)
+        setUserCurrency('USD')
+        setValue('currency', 'USD')
+      })
+  }, [setValue])
 
   const categoryType = watch('type')
   const isMainCategory = watch('isMainCategory')
@@ -305,18 +326,50 @@ export function CategoryForm({ open, onOpenChange, mainCategories = [], category
                 {categoryType === 'EXPENSE' && (
                   <div className="grid gap-2">
                     <Label htmlFor="budgetLimit">Monthly Budget</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                        $
-                      </span>
-                      <Input
-                        id="budgetLimit"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        className="pl-8"
-                        {...register('budgetLimit')}
-                      />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                          {getCurrencyByCode(watch('currency') || 'USD')?.symbol || '$'}
+                        </span>
+                        <Input
+                          id="budgetLimit"
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          className="pl-8"
+                          {...register('budgetLimit')}
+                        />
+                      </div>
+                      <Select
+                        value={watch('currency')}
+                        onValueChange={(value) => setValue('currency', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="EUR">EUR</SelectItem>
+                          <SelectItem value="GBP">GBP</SelectItem>
+                          <SelectItem value="JPY">JPY</SelectItem>
+                          <SelectItem value="CAD">CAD</SelectItem>
+                          <SelectItem value="AUD">AUD</SelectItem>
+                          <SelectItem value="CHF">CHF</SelectItem>
+                          <SelectItem value="CNY">CNY</SelectItem>
+                          <SelectItem value="SEK">SEK</SelectItem>
+                          <SelectItem value="NOK">NOK</SelectItem>
+                          <SelectItem value="DKK">DKK</SelectItem>
+                          <SelectItem value="PLN">PLN</SelectItem>
+                          <SelectItem value="CZK">CZK</SelectItem>
+                          <SelectItem value="HUF">HUF</SelectItem>
+                          <SelectItem value="BRL">BRL</SelectItem>
+                          <SelectItem value="INR">INR</SelectItem>
+                          <SelectItem value="KRW">KRW</SelectItem>
+                          <SelectItem value="SGD">SGD</SelectItem>
+                          <SelectItem value="HKD">HKD</SelectItem>
+                          <SelectItem value="NZD">NZD</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 )}

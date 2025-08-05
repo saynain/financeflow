@@ -14,7 +14,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { amount, type, description, date, categoryId } = body
+    const { amount, currency, type, description, date, categoryId } = body
 
     // Verify the transaction belongs to the user
     const existingTransaction = await prisma.transaction.findFirst({
@@ -32,6 +32,7 @@ export async function PUT(
       where: { id: params.id },
       data: {
         amount,
+        currency: currency || 'USD',
         type,
         description,
         date: new Date(date),

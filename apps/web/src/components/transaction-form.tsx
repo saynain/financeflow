@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -27,9 +27,11 @@ import {
 import { useCategories } from '@/hooks/use-dashboard'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icons } from '@/components/ui/icons'
+import { getCurrencyByCode } from '@/lib/currencies'
 
 const transactionSchema = z.object({
   amount: z.string().min(1, 'Amount is required'),
+  currency: z.string().min(1, 'Currency is required'),
   type: z.enum(['INCOME', 'EXPENSE']),
   description: z.string().optional(),
   date: z.string().min(1, 'Date is required'),
@@ -44,6 +46,7 @@ interface TransactionFormProps {
   transaction?: {
     id: string
     amount: number
+    currency: string
     type: 'INCOME' | 'EXPENSE'
     description: string | null
     date: string
@@ -55,6 +58,7 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
   const queryClient = useQueryClient()
   const { data: categories, isLoading: categoriesLoading } = useCategories()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [userCurrency, setUserCurrency] = useState<string | null>(null)
 
   const {
     register,
@@ -68,16 +72,38 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
     defaultValues: transaction
       ? {
           amount: transaction.amount.toString(),
+          currency: transaction.currency,
           type: transaction.type,
           description: transaction.description || '',
           date: format(new Date(transaction.date), 'yyyy-MM-dd'),
           categoryId: transaction.categoryId,
         }
       : {
+          currency: 'USD', // Will be updated when userCurrency is loaded
           type: 'EXPENSE',
           date: format(new Date(), 'yyyy-MM-dd'),
         },
   })
+
+  // Fetch user currency on component mount
+  useEffect(() => {
+    fetch('/api/user/currency')
+      .then(res => res.json())
+      .then(data => {
+        const currency = data.currency || 'USD'
+        setUserCurrency(currency)
+        if (!transaction) {
+          setValue('currency', currency)
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching currency:', error)
+        setUserCurrency('USD')
+        if (!transaction) {
+          setValue('currency', 'USD')
+        }
+      })
+  }, [transaction, setValue])
 
   const transactionType = watch('type')
 
@@ -172,18 +198,50 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
 
             <div className="grid gap-2">
               <Label htmlFor="amount">Amount</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                  $
-                </span>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  className="pl-8"
-                  {...register('amount')}
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    {getCurrencyByCode(watch('currency'))?.symbol || '$'}
+                  </span>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="pl-8"
+                    {...register('amount')}
+                  />
+                </div>
+                <Select
+                  value={watch('currency')}
+                  onValueChange={(value) => setValue('currency', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="JPY">JPY</SelectItem>
+                    <SelectItem value="CAD">CAD</SelectItem>
+                    <SelectItem value="AUD">AUD</SelectItem>
+                    <SelectItem value="CHF">CHF</SelectItem>
+                    <SelectItem value="CNY">CNY</SelectItem>
+                    <SelectItem value="SEK">SEK</SelectItem>
+                    <SelectItem value="NOK">NOK</SelectItem>
+                    <SelectItem value="DKK">DKK</SelectItem>
+                    <SelectItem value="PLN">PLN</SelectItem>
+                    <SelectItem value="CZK">CZK</SelectItem>
+                    <SelectItem value="HUF">HUF</SelectItem>
+                    <SelectItem value="BRL">BRL</SelectItem>
+                    <SelectItem value="INR">INR</SelectItem>
+                    <SelectItem value="KRW">KRW</SelectItem>
+                    <SelectItem value="SGD">SGD</SelectItem>
+                    <SelectItem value="HKD">HKD</SelectItem>
+                    <SelectItem value="NZD">NZD</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               {errors.amount && (
                 <p className="text-sm text-red-600">{errors.amount.message}</p>

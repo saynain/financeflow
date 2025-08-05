@@ -12,6 +12,14 @@ export async function GET() {
     }
 
     const userId = session.user.id
+    
+    // Get user's preferred currency
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { currency: true }
+    })
+    const userCurrency = user?.currency || 'USD'
+
     const now = new Date()
     const startOfCurrentMonth = startOfMonth(now)
     const endOfCurrentMonth = endOfMonth(now)
@@ -97,6 +105,7 @@ export async function GET() {
       monthlyIncome: currentMonthIncome,
       monthlyExpenses: currentMonthExpenses,
       savingsRate,
+      currency: userCurrency,
       changes: {
         income: incomeChange,
         expenses: expenseChange,

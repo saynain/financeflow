@@ -1,15 +1,31 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useChartData } from '@/hooks/use-dashboard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTheme } from 'next-themes'
+import { formatCurrency } from '@/lib/currencies'
 
 export function CashFlowChart() {
   const { data, isLoading } = useChartData()
   const { theme } = useTheme()
+  const [userCurrency, setUserCurrency] = useState<string | null>(null)
 
-  if (isLoading) {
+  // Fetch user currency
+  useEffect(() => {
+    fetch('/api/user/currency')
+      .then(res => res.json())
+      .then(data => {
+        setUserCurrency(data.currency || 'USD')
+      })
+      .catch(error => {
+        console.error('Error fetching currency:', error)
+        setUserCurrency('USD')
+      })
+  }, [])
+
+  if (isLoading || userCurrency === null) {
     return <Skeleton className="h-[300px] w-full" />
   }
 
@@ -42,7 +58,7 @@ export function CashFlowChart() {
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `$${value}`}
+          tickFormatter={(value) => formatCurrency(value, userCurrency)}
         />
         <Tooltip
           contentStyle={{ 
@@ -52,7 +68,7 @@ export function CashFlowChart() {
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
             color: isDark ? '#f9fafb' : '#111827'
           }}
-          formatter={(value: number) => [`$${value.toLocaleString()}`, '']}
+          formatter={(value: number) => [formatCurrency(value, userCurrency), '']}
         />
         <Area
           type="monotone"

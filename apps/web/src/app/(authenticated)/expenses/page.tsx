@@ -10,6 +10,7 @@ import { format } from 'date-fns'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TransactionForm } from '@/components/transaction-form'
 import { TransactionItem } from '@/components/transaction-item'
+import { formatCurrency } from '@/lib/currencies'
 
 const categoryColors: Record<string, string> = {
   'Food & Dining': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
@@ -74,7 +75,7 @@ export default function ExpensesPage() {
             ) : (
               <>
                 <div className="text-2xl font-bold">
-                  ${stats?.monthlyExpenses.toFixed(2) || '0.00'}
+                  {formatCurrency(stats?.monthlyExpenses || 0, stats?.currency || 'USD')}
                 </div>
                 <p className="text-xs text-muted-foreground text-red-600">
                   {stats?.monthlyExpenses && stats.monthlyIncome > 0 
@@ -99,7 +100,7 @@ export default function ExpensesPage() {
                   {highestCategory?.[0] || 'N/A'}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  ${highestCategory?.[1]?.toFixed(2) || '0.00'} spent
+                  {formatCurrency(highestCategory?.[1] || 0, stats?.currency || 'USD')} spent
                 </p>
               </>
             )}
@@ -114,7 +115,7 @@ export default function ExpensesPage() {
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold">${avgDaily.toFixed(2)}</div>
+                <div className="text-2xl font-bold">{formatCurrency(avgDaily, stats?.currency || 'USD')}</div>
                 <p className="text-xs text-muted-foreground">
                   Based on current month
                 </p>

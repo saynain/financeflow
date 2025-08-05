@@ -12,7 +12,8 @@ import {
   Settings,
   Menu,
   X,
-  LogOut
+  LogOut,
+  Briefcase
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,7 @@ import { useState } from 'react'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Portfolios', href: '/portfolios', icon: Briefcase },
   { name: 'Budget', href: '/budget', icon: Wallet },
   { name: 'Expenses', href: '/expenses', icon: CreditCard },
   { name: 'Savings', href: '/savings', icon: PiggyBank },

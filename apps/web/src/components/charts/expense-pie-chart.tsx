@@ -1,11 +1,13 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { useChartData } from '@/hooks/use-dashboard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTheme } from 'next-themes'
+import { formatCurrency } from '@/lib/currencies'
 
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload, userCurrency }: any) => {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   
@@ -13,7 +15,7 @@ const CustomTooltip = ({ active, payload }: any) => {
     return (
       <div className={`${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-2 rounded-lg shadow-lg border`}>
         <p className="font-semibold">{payload[0].name}</p>
-        <p className="text-sm">${payload[0].value.toLocaleString()}</p>
+        <p className="text-sm">{formatCurrency(payload[0].value, userCurrency)}</p>
       </div>
     )
   }
@@ -22,8 +24,22 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 export function ExpensePieChart() {
   const { data, isLoading } = useChartData()
+  const [userCurrency, setUserCurrency] = useState<string | null>(null)
 
-  if (isLoading) {
+  // Fetch user currency
+  useEffect(() => {
+    fetch('/api/user/currency')
+      .then(res => res.json())
+      .then(data => {
+        setUserCurrency(data.currency || 'USD')
+      })
+      .catch(error => {
+        console.error('Error fetching currency:', error)
+        setUserCurrency('USD')
+      })
+  }, [])
+
+  if (isLoading || userCurrency === null) {
     return <Skeleton className="h-[200px] w-full" />
   }
 
@@ -48,12 +64,12 @@ export function ExpensePieChart() {
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={(props) => <CustomTooltip {...props} userCurrency={userCurrency} />} />
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
-            <p className="text-2xl font-bold">${total.toLocaleString()}</p>
+            <p className="text-2xl font-bold">{formatCurrency(total, userCurrency)}</p>
             <p className="text-sm text-muted-foreground">Total</p>
           </div>
         </div>
@@ -70,7 +86,7 @@ export function ExpensePieChart() {
               <span className="text-sm">{item.name}</span>
             </div>
             <span className="text-sm font-medium">
-              ${item.value.toLocaleString()}
+              {formatCurrency(item.value, userCurrency)}
             </span>
           </div>
         ))}

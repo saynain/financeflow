@@ -14,7 +14,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { name, icon, color, budgetLimit } = body
+    const { name, icon, color, budgetLimit, currency } = body
 
     // Verify the category belongs to the user
     const existingCategory = await prisma.category.findFirst({
@@ -35,6 +35,7 @@ export async function PUT(
         icon,
         color,
         budgetLimit,
+        currency: currency || 'USD',
       },
     })
 
