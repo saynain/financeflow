@@ -26,6 +26,7 @@ import { TransactionForm } from '@/components/transaction-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icons } from '@/components/ui/icons'
 import { Transaction } from '@/types/transaction'
+import { getTagColor } from '@/lib/tag-colors'
 
 interface TransactionItemProps {
   transaction: Transaction
@@ -77,11 +78,23 @@ export function TransactionItem({ transaction, showTags = true }: TransactionIte
             <div className="flex items-center gap-2 mt-1">
               {showTags && transaction.tags && transaction.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {transaction.tags.slice(0, 3).map((tag, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
+                  {transaction.tags.slice(0, 3).map((tag, index) => {
+                    const tagColor = getTagColor(tag)
+                    return (
+                      <Badge 
+                        key={index} 
+                        variant="secondary" 
+                        className="text-xs"
+                        style={{ 
+                          backgroundColor: `${tagColor}20`, 
+                          color: tagColor,
+                          borderColor: `${tagColor}40`
+                        }}
+                      >
+                        {tag}
+                      </Badge>
+                    )
+                  })}
                   {transaction.tags.length > 3 && (
                     <Badge variant="outline" className="text-xs">
                       +{transaction.tags.length - 3} more
@@ -159,11 +172,23 @@ export function TransactionItem({ transaction, showTags = true }: TransactionIte
                 </p>
                 {transaction.tags && transaction.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {transaction.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
+                    {transaction.tags.map((tag, index) => {
+                      const tagColor = getTagColor(tag)
+                      return (
+                        <Badge 
+                          key={index} 
+                          variant="secondary" 
+                          className="text-xs"
+                          style={{ 
+                            backgroundColor: `${tagColor}20`, 
+                            color: tagColor,
+                            borderColor: `${tagColor}40`
+                          }}
+                        >
+                          {tag}
+                        </Badge>
+                      )
+                    })}
                   </div>
                 )}
               </div>

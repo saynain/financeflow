@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const period = searchParams.get('period') || 'current' // current, last, custom
+    const period = searchParams.get('period') || 'current' // current, last, 6months, year, custom
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
 
@@ -32,6 +32,20 @@ export async function GET(request: Request) {
       dateFilter = {
         gte: startOfLastMonth,
         lte: endOfLastMonth,
+      }
+    } else if (period === '6months') {
+      const now = new Date()
+      const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1)
+      dateFilter = {
+        gte: sixMonthsAgo,
+        lte: now,
+      }
+    } else if (period === 'year') {
+      const now = new Date()
+      const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1)
+      dateFilter = {
+        gte: oneYearAgo,
+        lte: now,
       }
     } else if (startDate && endDate) {
       dateFilter = {

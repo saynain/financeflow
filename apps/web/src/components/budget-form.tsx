@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -12,185 +15,248 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Icons } from '@/components/ui/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { getCurrencyByCode } from '@/lib/currencies'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-
-const budgetSchema = z.object({
-  budgetLimit: z.string().min(1, 'Budget amount is required'),
-  currency: z.string().min(1, 'Currency is required'),
-})
-
-type BudgetFormData = z.infer<typeof budgetSchema>
+import { formatCurrency } from '@/lib/currencies'
+import { getTagColor } from '@/lib/tag-colors'
+import { Tag, Plus, X } from 'lucide-react'
 
 interface BudgetFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  category: {
-    id: string
-    name: string
-    icon: string | null
-    budgetLimit: number
-    currency: string
-  }
+  suggestedValues?: Record<string, number>
+  availableTags?: string[]
+  budget?: Budget
 }
 
-export function BudgetForm({ open, onOpenChange, category }: BudgetFormProps) {
-  const queryClient = useQueryClient()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [userCurrency, setUserCurrency] = useState<string | null>(null)
+interface BudgetItem {
+  tag: string
+  amount: number
+}
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    watch,
-    setValue,
-  } = useForm<BudgetFormData>({
-    resolver: zodResolver(budgetSchema),
-    defaultValues: {
-      budgetLimit: category.budgetLimit.toString(),
-      currency: category.currency || 'USD',
-    },
-  })
+interface Budget {
+  id: string
+  name: string
+  items: Array<{
+    id: string
+    tag: string
+    amount: number
+  }>
+  createdAt: string
+}
+
+export function BudgetForm({ open, onOpenChange, suggestedValues = {}, availableTags = [], budget }: BudgetFormProps) {
+  const [budgetName, setBudgetName] = useState('')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([])
+  const [userCurrency, setUserCurrency] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+
+  // Initialize form with budget data if editing
+  useEffect(() => {
+    if (budget) {
+      setBudgetName(budget.name)
+      setSelectedTags(budget.items.map(item => item.tag))
+      setBudgetItems(budget.items.map(item => ({ tag: item.tag, amount: item.amount })))
+    } else {
+      resetForm()
+    }
+  }, [budget, open])
 
   // Fetch user currency on component mount
   useEffect(() => {
     fetch('/api/user/currency')
       .then(res => res.json())
       .then(data => {
-        const currency = data.currency || 'USD'
-        setUserCurrency(currency)
-        setValue('currency', currency)
+        if (data.currency) {
+          setUserCurrency(data.currency)
+        } else {
+          setUserCurrency('USD')
+        }
       })
       .catch(error => {
         console.error('Error fetching currency:', error)
         setUserCurrency('USD')
-        setValue('currency', 'USD')
       })
-  }, [setValue])
+  }, [])
 
-  const updateMutation = useMutation({
-    mutationFn: async (data: BudgetFormData) => {
-      const response = await fetch('/api/budgets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          categoryId: category.id,
-          budgetLimit: parseFloat(data.budgetLimit),
-          currency: data.currency,
-        }),
+  const createBudgetMutation = useMutation({
+    mutationFn: async (data: { name: string; items: BudgetItem[] }) => {
+      const url = budget ? `/api/budgets/${budget.id}` : '/api/budgets'
+      const method = budget ? 'PUT' : 'POST'
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       })
-      if (!response.ok) throw new Error('Failed to update budget')
+      if (!response.ok) throw new Error(`Failed to ${budget ? 'update' : 'create'} budget`)
       return response.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] })
-      reset()
+      queryClient.invalidateQueries({ queryKey: ['budget-tags'] })
       onOpenChange(false)
+      resetForm()
     },
   })
 
-  const onSubmit = async (data: BudgetFormData) => {
-    setIsSubmitting(true)
-    try {
-      await updateMutation.mutateAsync(data)
-    } catch (error) {
-      console.error('Error updating budget:', error)
-    } finally {
-      setIsSubmitting(false)
+  const resetForm = () => {
+    setBudgetName('')
+    setSelectedTags([])
+    setBudgetItems([])
+  }
+
+  const handleTagToggle = (tag: string) => {
+    if (selectedTags.includes(tag)) {
+      setSelectedTags(selectedTags.filter(t => t !== tag))
+      setBudgetItems(budgetItems.filter(item => item.tag !== tag))
+    } else {
+      setSelectedTags([...selectedTags, tag])
+      const existingItem = budgetItems.find(item => item.tag === tag)
+      const suggestedAmount = existingItem?.amount || suggestedValues[tag] || 0
+      setBudgetItems([...budgetItems, { tag, amount: suggestedAmount }])
     }
   }
 
+  const handleAmountChange = (tag: string, amount: string) => {
+    const numAmount = parseFloat(amount) || 0
+    setBudgetItems(budgetItems.map(item => 
+      item.tag === tag ? { ...item, amount: numAmount } : item
+    ))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!budgetName.trim() || budgetItems.length === 0) return
+
+    await createBudgetMutation.mutateAsync({
+      name: budgetName.trim(),
+      items: budgetItems,
+    })
+  }
+
+  const totalBudget = budgetItems.reduce((sum, item) => sum + Number(item.amount), 0)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogHeader>
-            <DialogTitle>Set Budget for {category.name}</DialogTitle>
-            <DialogDescription>
-              Set a monthly spending limit for this category
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="flex items-center justify-center py-4">
-              <div className="text-6xl">{category.icon || '💰'}</div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="budgetLimit">Monthly Budget</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                    {getCurrencyByCode(watch('currency'))?.symbol || '$'}
-                  </span>
-                  <Input
-                    id="budgetLimit"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    className="pl-8"
-                    {...register('budgetLimit')}
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{budget ? 'Edit Budget' : 'Create New Budget'}</DialogTitle>
+          <DialogDescription>
+            {budget ? 'Update your budget settings.' : 'Set up a budget by selecting categories and defining spending limits.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Budget Name */}
+          <div className="space-y-2">
+            <Label htmlFor="budget-name">Budget Name</Label>
+            <Input
+              id="budget-name"
+              value={budgetName}
+              onChange={(e) => setBudgetName(e.target.value)}
+              placeholder="e.g., Monthly Budget, Grocery Budget"
+              required
+            />
+          </div>
+
+          {/* Tag Selection */}
+          <div className="space-y-4">
+            <Label>Select Categories</Label>
+            <div className="grid grid-cols-2 gap-3">
+              {availableTags.map((tag) => (
+                <div key={tag} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={tag}
+                    checked={selectedTags.includes(tag)}
+                    onCheckedChange={() => handleTagToggle(tag)}
                   />
+                  <Label
+                    htmlFor={tag}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <div 
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: getTagColor(tag) }}
+                    />
+                    {tag}
+                  </Label>
                 </div>
-                <Select
-                  value={watch('currency')}
-                  onValueChange={(value) => setValue('currency', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="JPY">JPY</SelectItem>
-                    <SelectItem value="CAD">CAD</SelectItem>
-                    <SelectItem value="AUD">AUD</SelectItem>
-                    <SelectItem value="CHF">CHF</SelectItem>
-                    <SelectItem value="CNY">CNY</SelectItem>
-                    <SelectItem value="SEK">SEK</SelectItem>
-                    <SelectItem value="NOK">NOK</SelectItem>
-                    <SelectItem value="DKK">DKK</SelectItem>
-                    <SelectItem value="PLN">PLN</SelectItem>
-                    <SelectItem value="CZK">CZK</SelectItem>
-                    <SelectItem value="HUF">HUF</SelectItem>
-                    <SelectItem value="BRL">BRL</SelectItem>
-                    <SelectItem value="INR">INR</SelectItem>
-                    <SelectItem value="KRW">KRW</SelectItem>
-                    <SelectItem value="SGD">SGD</SelectItem>
-                    <SelectItem value="HKD">HKD</SelectItem>
-                    <SelectItem value="NZD">NZD</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {errors.budgetLimit && (
-                <p className="text-sm text-red-600">{errors.budgetLimit.message}</p>
-              )}
+              ))}
             </div>
           </div>
+
+          {/* Budget Items */}
+          {budgetItems.length > 0 && (
+            <div className="space-y-4">
+              <Label>Set Budget Amounts</Label>
+              <div className="space-y-3">
+                {budgetItems.map((item) => (
+                  <Card key={item.tag} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="p-2 rounded-lg"
+                          style={{ 
+                            backgroundColor: `${getTagColor(item.tag)}20`,
+                            border: `1px solid ${getTagColor(item.tag)}40`
+                          }}
+                        >
+                          <Tag className="h-4 w-4" style={{ color: getTagColor(item.tag) }} />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{item.tag}</h3>
+                          {suggestedValues[item.tag] && !budget && (
+                            <p className="text-sm text-muted-foreground">
+                              Suggested: {formatCurrency(suggestedValues[item.tag], userCurrency)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={item.amount}
+                          onChange={(e) => handleAmountChange(item.tag, e.target.value)}
+                          className="w-32"
+                          min="0"
+                          step="0.01"
+                          required
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          {userCurrency}
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Total */}
+              <div className="flex justify-between items-center pt-4 border-t">
+                <span className="font-medium">Total Budget:</span>
+                <span className="text-lg font-semibold">
+                  {formatCurrency(totalBudget, userCurrency)}
+                </span>
+              </div>
+            </div>
+          )}
+
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
-              Save Budget
+            <Button
+              type="submit"
+              disabled={!budgetName.trim() || budgetItems.length === 0 || createBudgetMutation.isPending}
+            >
+              {createBudgetMutation.isPending ? (budget ? 'Updating...' : 'Creating...') : (budget ? 'Update Budget' : 'Create Budget')}
             </Button>
           </DialogFooter>
         </form>

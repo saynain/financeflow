@@ -60,19 +60,15 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back! Here's your financial overview.</p>
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-2">Welcome back! Here's your financial overview.</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">Current date</p>
-            <p className="text-2xl font-semibold">{format(new Date(), 'MMMM d, yyyy')}</p>
-          </div>
-          <Button onClick={() => setTransactionFormOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Transaction
-          </Button>
-        </div>
+        <Button onClick={() => setTransactionFormOpen(true)} size="lg">
+          <Plus className="mr-2 h-5 w-5" />
+          Add Transaction
+        </Button>
       </div>
 
       {/* Stats Grid */}

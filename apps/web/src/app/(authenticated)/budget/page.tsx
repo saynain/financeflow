@@ -1,42 +1,35 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { 
   Plus, 
-  Pencil, 
-  MoreVertical, 
-  Trash2, 
-  ChevronDown, 
-  ChevronRight,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  PiggyBank,
-  AlertTriangle,
-  CheckCircle,
-  Target,
   Calendar,
   BarChart3,
-  Tag
+  Tag,
+  DollarSign,
+  Trash2,
+  Edit
 } from 'lucide-react'
 import { useBudgetTags } from '@/hooks/use-budget-tags'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TransactionForm } from '@/components/transaction-form'
+import { BudgetForm } from '@/components/budget-form'
+import { SortableBudgetList } from '@/components/sortable-budget-list'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/currencies'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { getTagColor } from '@/lib/tag-colors'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
@@ -45,17 +38,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icons } from '@/components/ui/icons'
 
+const timePeriods = [
+  { value: 'current', label: 'This Month' },
+  { value: 'last', label: 'Previous Month' },
+  { value: '6months', label: 'Last 6 Months' },
+  { value: 'year', label: 'Last Year' },
+]
+
+interface Budget {
+  id: string
+  name: string
+  items: Array<{
+    id: string
+    tag: string
+    amount: number
+  }>
+  createdAt: string
+}
+
 export default function BudgetPage() {
-  const { data, isLoading } = useBudgetTags()
-  const queryClient = useQueryClient()
-  const [transactionFormOpen, setTransactionFormOpen] = useState(false)
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
+  const [selectedPeriod, setSelectedPeriod] = useState('current')
   const [userCurrency, setUserCurrency] = useState<string | null>(null)
-  const [monthlyIncome, setMonthlyIncome] = useState(0)
-  const [isEditingIncome, setIsEditingIncome] = useState(false)
+  const [transactionFormOpen, setTransactionFormOpen] = useState(false)
+  const [budgetFormOpen, setBudgetFormOpen] = useState(false)
+  const [editingBudget, setEditingBudget] = useState<Budget | undefined>(undefined)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingBudget, setDeletingBudget] = useState<Budget | null>(null)
+  const queryClient = useQueryClient()
 
   // Fetch user currency on component mount
   useEffect(() => {
@@ -74,21 +85,88 @@ export default function BudgetPage() {
       })
   }, [])
 
-  const totalIncome = monthlyIncome
-  const totalExpenses = data?.totalSpent || 0
-  const savings = totalIncome - totalExpenses
-  const savingsRate = totalIncome > 0 ? (savings / totalIncome) * 100 : 0
+  const { data, isLoading } = useBudgetTags(selectedPeriod)
+  
+  // Get suggested values from last month's expenses
+  const { data: lastMonthData } = useBudgetTags('last')
+  
+  const suggestedValues = lastMonthData?.tagGroups.reduce((acc, tagGroup) => {
+    // Use the absolute value of expenses as suggested budget
+    const suggestedAmount = Math.abs(tagGroup.totalSpent)
+    if (suggestedAmount > 0) {
+      acc[tagGroup.tag] = suggestedAmount
+    }
+    return acc
+  }, {} as Record<string, number>) || {}
+  
+  const availableTags = data?.tagGroups.map(tagGroup => tagGroup.tag) || []
 
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [sectionId]: !prev[sectionId]
-    }))
+  // Fetch existing budgets
+  const { data: budgets, isLoading: budgetsLoading } = useQuery({
+    queryKey: ['budgets'],
+    queryFn: async () => {
+      const response = await fetch('/api/budgets')
+      if (!response.ok) {
+        throw new Error('Failed to fetch budgets')
+      }
+      return response.json() as Promise<Budget[]>
+    },
+  })
+
+  // Delete budget mutation
+  const deleteBudgetMutation = useMutation({
+    mutationFn: async (budgetId: string) => {
+      const response = await fetch(`/api/budgets/${budgetId}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) throw new Error('Failed to delete budget')
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      setDeleteDialogOpen(false)
+      setDeletingBudget(null)
+    },
+  })
+
+  const handleEditBudget = (budget: Budget) => {
+    setEditingBudget(budget)
+    setBudgetFormOpen(true)
   }
 
-  const handleIncomeUpdate = async () => {
-    // Here you would typically save to your backend
-    setIsEditingIncome(false)
+  const handleDeleteBudget = (budget: Budget) => {
+    setDeletingBudget(budget)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleBudgetFormClose = () => {
+    setBudgetFormOpen(false)
+    setEditingBudget(undefined)
+  }
+
+  const handleReorderBudgets = async (newBudgets: Budget[]) => {
+    try {
+      const response = await fetch('/api/budgets/reorder', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          budgetIds: newBudgets.map(budget => budget.id),
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to reorder budgets')
+      }
+      
+      // Optimistically update the local state
+      queryClient.setQueryData(['budgets'], newBudgets)
+    } catch (error) {
+      console.error('Error reordering budgets:', error)
+      // Refetch on error to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['budgets'] })
+    }
   }
 
   // Don't render currency-dependent content until we have the user's currency
@@ -97,7 +175,9 @@ export default function BudgetPage() {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">Financial Planning</h1>
+            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Budget Management
+            </h1>
             <p className="text-muted-foreground mt-2">Loading...</p>
           </div>
         </div>
@@ -110,11 +190,13 @@ export default function BudgetPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header with Income Management */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">Financial Planning</h1>
-          <p className="text-muted-foreground mt-2">Track your income, expenses, and savings goals by tags</p>
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Budget Management
+          </h1>
+          <p className="text-muted-foreground mt-2">Track your expenses by categories</p>
         </div>
         <Button onClick={() => setTransactionFormOpen(true)} size="lg">
           <Plus className="mr-2 h-5 w-5" />
@@ -122,312 +204,215 @@ export default function BudgetPage() {
         </Button>
       </div>
 
-      {/* Income Section */}
-      <Card className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
-        <CardHeader>
+      {/* Time Period Selector */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">Time Period:</span>
+        </div>
+        <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {timePeriods.map((period) => (
+              <SelectItem key={period.value} value={period.value}>
+                {period.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Expenses Overview Card */}
+      <Card className="rounded-xl shadow-lg border border-border">
+        <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-100 rounded-full">
-                <DollarSign className="h-6 w-6 text-green-600" />
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <CardTitle className="text-xl">Monthly Income</CardTitle>
-                <CardDescription>Set your total monthly income including bonuses</CardDescription>
+                <CardTitle className="text-xl font-semibold">
+                  Expenses Overview
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Total expenses by category for the selected time period. Use this as reference when creating budgets below.
+                </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditingIncome(!isEditingIncome)}
-            >
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {timePeriods.map((period) => (
+                    <SelectItem key={period.value} value={period.value}>
+                      {period.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
-          {isEditingIncome ? (
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <Label htmlFor="monthly-income" className="sr-only">Monthly Income</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                    {getCurrencyByCode(userCurrency)?.symbol || '$'}
-                  </span>
-                  <Input
-                    id="monthly-income"
-                    type="number"
-                    value={monthlyIncome}
-                    onChange={(e) => setMonthlyIncome(Number(e.target.value))}
-                    className="pl-8 text-2xl font-bold"
-                    placeholder="0"
-                  />
+        <CardContent className="pt-6">
+          {isLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-6 w-24" />
                 </div>
-              </div>
-              <Button onClick={handleIncomeUpdate} size="sm">
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setIsEditingIncome(false)}
-              >
-                Cancel
-              </Button>
+              ))}
             </div>
           ) : (
-            <div className="text-3xl font-bold text-green-600">
-              {formatCurrency(monthlyIncome, userCurrency)}
+            <div className="space-y-4">
+              {data?.tagGroups && data.tagGroups.length > 0 ? (
+                data.tagGroups.map((tagGroup) => {
+                  // Calculate net amount (income - expenses)
+                  const netAmount = tagGroup.totalIncome - tagGroup.totalSpent
+                  
+                  return (
+                    <div key={tagGroup.tag} className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="p-2 rounded-lg"
+                          style={{ 
+                            backgroundColor: `${getTagColor(tagGroup.tag)}20`,
+                            border: `1px solid ${getTagColor(tagGroup.tag)}40`
+                          }}
+                        >
+                          <Tag className="h-4 w-4" style={{ color: getTagColor(tagGroup.tag) }} />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{tagGroup.tag}</h3>
+                          <p className="text-sm text-muted-foreground">{tagGroup.transactionCount} transactions</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={cn(
+                          "text-lg font-semibold",
+                          netAmount > 0 ? "text-green-600" : netAmount < 0 ? "text-red-600" : ""
+                        )}>
+                          {netAmount > 0 ? '+' : netAmount < 0 ? '-' : ''}{formatCurrency(Math.abs(netAmount), userCurrency)}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                // Empty state when no data exists
+                <div className="text-center py-8">
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <Tag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No transactions found</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Add transactions with tags to see your expenses overview here.
+                    </p>
+                    <Button onClick={() => setTransactionFormOpen(true)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Transaction
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Financial Overview Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-blue-100 rounded-full">
-                <TrendingDown className="h-5 w-5 text-blue-600" />
+      {/* Budget Management Section */}
+      <Card className="rounded-xl shadow-lg border border-border">
+        <CardHeader className="border-b border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                <BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <CardTitle className="text-lg">Total Expenses</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-blue-600 mb-2">
-              {formatCurrency(totalExpenses, userCurrency)}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <BarChart3 className="h-4 w-4" />
-              {totalIncome > 0 ? `${((totalExpenses / totalIncome) * 100).toFixed(1)}% of income` : 'No income set'}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-purple-100 rounded-full">
-                <PiggyBank className="h-5 w-5 text-purple-600" />
+              <div>
+                <CardTitle className="text-xl font-semibold">
+                  Budget Management
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Set budget limits for each category and track your progress.
+                </p>
               </div>
-              <CardTitle className="text-lg">Planned Savings</CardTitle>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className={cn(
-              "text-3xl font-bold mb-2",
-              savings >= 0 ? "text-purple-600" : "text-red-600"
-            )}>
-              {formatCurrency(savings, userCurrency)}
+            <Button onClick={() => setBudgetFormOpen(true)} size="sm">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Budget
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {budgetsLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-32 w-full" />
+              ))}
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Target className="h-4 w-4" />
-              {savingsRate.toFixed(1)}% savings rate
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-orange-100 rounded-full">
-                <Calendar className="h-5 w-5 text-orange-600" />
+          ) : budgets && budgets.length > 0 ? (
+            <SortableBudgetList
+              budgets={budgets}
+              userCurrency={userCurrency}
+              onEdit={handleEditBudget}
+              onDelete={handleDeleteBudget}
+              onReorder={handleReorderBudgets}
+              data={data}
+            />
+          ) : (
+            <div className="text-center py-8">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Budget Management</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create custom budgets for each category based on the expenses overview above.
+                </p>
+                <Button variant="outline" onClick={() => setBudgetFormOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Budget
+                </Button>
               </div>
-              <CardTitle className="text-lg">Budget Status</CardTitle>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 mb-2">
-              {savings >= 0 ? (
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              ) : (
-                <AlertTriangle className="h-6 w-6 text-red-600" />
-              )}
-              <span className={cn(
-                "text-lg font-semibold",
-                savings >= 0 ? "text-green-600" : "text-red-600"
-              )}>
-                {savings >= 0 ? 'On Track' : 'Over Budget'}
-              </span>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {data?.tagGroups.length || 0} active tags
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tag Groups */}
-      {isLoading ? (
-        <div className="space-y-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="overflow-hidden">
-              <CardHeader>
-                <Skeleton className="h-8 w-48" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[1, 2, 3].map((j) => (
-                    <Skeleton key={j} className="h-20 w-full" />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {data?.tagGroups.map((tagGroup) => {
-            const isExpanded = expandedSections[tagGroup.tag] !== false // Default to expanded
-            const percentageOfIncome = totalIncome > 0 ? (tagGroup.totalSpent / totalIncome) * 100 : 0
-            const isHighSpending = percentageOfIncome > 20 // More than 20% of income
-
-            return (
-              <Card key={tagGroup.tag} className={cn(
-                "overflow-hidden transition-all hover:shadow-lg",
-                isHighSpending && "border-orange-300 bg-orange-50/30"
-              )}>
-                <CardHeader 
-                  className={cn(
-                    "cursor-pointer transition-colors",
-                    isHighSpending && "bg-orange-50/50"
-                  )}
-                  onClick={() => toggleSection(tagGroup.tag)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleSection(tagGroup.tag)
-                        }}
-                      >
-                        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                      </Button>
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "p-3 rounded-full",
-                          isHighSpending && "bg-orange-100",
-                          !isHighSpending && "bg-blue-100"
-                        )}>
-                          <Tag className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-xl flex items-center gap-2">
-                            {tagGroup.tag}
-                            {isHighSpending && (
-                              <span className="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-700 font-medium">
-                                High Spending
-                              </span>
-                            )}
-                          </CardTitle>
-                          <CardDescription className="mt-1">
-                            {formatCurrency(tagGroup.totalSpent, userCurrency)} spent • {tagGroup.transactionCount} transactions
-                          </CardDescription>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className={cn(
-                          "text-2xl font-bold",
-                          isHighSpending && "text-orange-600",
-                          !isHighSpending && "text-blue-600"
-                        )}>
-                          {percentageOfIncome.toFixed(1)}%
-                        </p>
-                        <p className="text-xs text-muted-foreground">of income</p>
-                      </div>
-                    </div>
-                  </div>
-                  <Progress 
-                    value={Math.min(percentageOfIncome, 100)} 
-                    className={cn(
-                      "h-3 mt-4",
-                      isHighSpending && "[&>div]:bg-orange-500",
-                      !isHighSpending && "[&>div]:bg-blue-500"
-                    )}
-                  />
-                </CardHeader>
-                
-                {isExpanded && (
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      {tagGroup.transactions.map((transaction) => (
-                        <div 
-                          key={transaction.id} 
-                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "p-2 rounded-full",
-                              transaction.type === 'INCOME' ? "bg-green-100" : "bg-red-100"
-                            )}>
-                              {transaction.type === 'INCOME' ? '💰' : '💸'}
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">
-                                {transaction.type === 'INCOME' ? 'Income' : 'Expense'}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(transaction.date).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className={cn(
-                            "text-lg font-semibold",
-                            transaction.type === 'INCOME' ? "text-green-600" : "text-red-600"
-                          )}>
-                            {transaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(transaction.amount, userCurrency)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
-            )
-          })}
-        </div>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       {/* Transaction Form Modal */}
       <TransactionForm
         open={transactionFormOpen}
         onOpenChange={setTransactionFormOpen}
       />
+
+      {/* Budget Form Modal */}
+      <BudgetForm
+        open={budgetFormOpen}
+        onOpenChange={handleBudgetFormClose}
+        suggestedValues={suggestedValues}
+        availableTags={availableTags}
+        budget={editingBudget}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you absolutely sure?</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete your budget.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deletingBudget && deleteBudgetMutation.mutate(deletingBudget.id)}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
-}
-
-// Helper function to get currency symbol
-function getCurrencyByCode(code: string) {
-  const currencies: Record<string, { symbol: string; name: string }> = {
-    USD: { symbol: '$', name: 'US Dollar' },
-    EUR: { symbol: '€', name: 'Euro' },
-    GBP: { symbol: '£', name: 'British Pound' },
-    JPY: { symbol: '¥', name: 'Japanese Yen' },
-    CAD: { symbol: 'C$', name: 'Canadian Dollar' },
-    AUD: { symbol: 'A$', name: 'Australian Dollar' },
-    CHF: { symbol: 'CHF', name: 'Swiss Franc' },
-    CNY: { symbol: '¥', name: 'Chinese Yuan' },
-    SEK: { symbol: 'kr', name: 'Swedish Krona' },
-    NOK: { symbol: 'kr', name: 'Norwegian Krone' },
-    DKK: { symbol: 'kr', name: 'Danish Krone' },
-    PLN: { symbol: 'zł', name: 'Polish Złoty' },
-    CZK: { symbol: 'Kč', name: 'Czech Koruna' },
-    HUF: { symbol: 'Ft', name: 'Hungarian Forint' },
-    BRL: { symbol: 'R$', name: 'Brazilian Real' },
-    INR: { symbol: '₹', name: 'Indian Rupee' },
-    KRW: { symbol: '₩', name: 'South Korean Won' },
-    SGD: { symbol: 'S$', name: 'Singapore Dollar' },
-    HKD: { symbol: 'HK$', name: 'Hong Kong Dollar' },
-    NZD: { symbol: 'NZ$', name: 'New Zealand Dollar' },
-  }
-  return currencies[code] || { symbol: '$', name: 'Unknown' }
 }

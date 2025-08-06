@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useTags, useCreateTag } from '@/hooks/use-tags'
+import { getTagColor } from '@/lib/tag-colors'
 
 interface TagInputProps {
   value: string[]
@@ -108,19 +109,31 @@ export function TagInput({ value, onChange, placeholder = "Add tags...", disable
   return (
     <div className="relative">
       <div className="flex flex-wrap gap-2 p-2 border border-input rounded-md bg-background">
-        {value.map((tag, index) => (
-          <Badge key={index} variant="secondary" className="gap-1">
-            {tag}
-            <button
-              type="button"
-              onClick={() => removeTag(tag)}
-              className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5"
-              disabled={disabled}
+        {value.map((tag, index) => {
+          const tagColor = getTagColor(tag)
+          return (
+            <Badge 
+              key={index} 
+              variant="secondary" 
+              className="gap-1"
+              style={{ 
+                backgroundColor: `${tagColor}20`, 
+                color: tagColor,
+                borderColor: `${tagColor}40`
+              }}
             >
-              <X className="h-3 w-3" />
-            </button>
-          </Badge>
-        ))}
+              {tag}
+              <button
+                type="button"
+                onClick={() => removeTag(tag)}
+                className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5"
+                disabled={disabled}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )
+        })}
         <Input
           ref={inputRef}
           value={inputValue}
@@ -147,6 +160,10 @@ export function TagInput({ value, onChange, placeholder = "Add tags...", disable
               onClick={() => handleSuggestionClick(tag.name)}
             >
               <div className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: getTagColor(tag.name) }}
+                />
                 <Plus className="h-4 w-4" />
                 {tag.name}
               </div>
@@ -166,6 +183,10 @@ export function TagInput({ value, onChange, placeholder = "Add tags...", disable
             onClick={() => addTag(inputValue.trim())}
           >
             <div className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: getTagColor(inputValue.trim()) }}
+              />
               <Plus className="h-4 w-4" />
               Create "{inputValue.trim()}"
             </div>

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { useState } from 'react'
 
@@ -25,9 +26,9 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Transactions', href: '/transactions', icon: CreditCard },
   { name: 'Budgets', href: '/budget', icon: BarChart3 },
-  { name: 'Portfolios', href: '/portfolios', icon: Briefcase },
-  { name: 'Savings', href: '/savings', icon: PiggyBank },
-  { name: 'Investments', href: '/investments', icon: TrendingUp },
+  { name: 'Portfolios', href: '/portfolios', icon: Briefcase, isDemo: true },
+  { name: 'Savings', href: '/savings', icon: PiggyBank, isDemo: true },
+  { name: 'Investments', href: '/investments', icon: TrendingUp, isDemo: true },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
@@ -76,14 +77,21 @@ export function Sidebar() {
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={cn(
-                    "group flex items-center rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200",
+                    "group flex items-center justify-between rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200",
                     isActive
                       ? "bg-indigo-600/20 text-indigo-400 border-l-4 border-indigo-400"
                       : "text-slate-300 hover:bg-slate-700 hover:text-white"
                   )}
                 >
-                  <item.icon className="mr-3 h-5 w-5" />
-                  {item.name}
+                  <div className="flex items-center">
+                    <item.icon className="mr-3 h-5 w-5" />
+                    {item.name}
+                  </div>
+                  {item.isDemo && (
+                    <Badge variant="secondary" className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                      DEMO
+                    </Badge>
+                  )}
                 </Link>
               )
             })}

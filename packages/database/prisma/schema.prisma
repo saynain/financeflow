@@ -21,6 +21,7 @@ model User {
   accounts     Account[]
   sessions     Session[]
   budgets      Budget[]
+  tagBudgets   TagBudget[]
   categories   Category[]
   transactions Transaction[]
   savingsGoals SavingsGoal[]
@@ -77,6 +78,33 @@ model Budget {
   categories Category[]
 
   @@map("budgets")
+}
+
+model TagBudget {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int      @default(0)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items TagBudgetItem[]
+
+  @@map("tag_budgets")
+}
+
+model TagBudgetItem {
+  id           String     @id @default(cuid())
+  tag          String
+  amount       Decimal    @db.Decimal(10, 2)
+  tagBudgetId  String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  tagBudget TagBudget @relation(fields: [tagBudgetId], references: [id], onDelete: Cascade)
+
+  @@map("tag_budget_items")
 }
 
 model Category {
@@ -178,6 +206,7 @@ model BankAccount {
 model Tag {
   id        String   @id @default(cuid())
   name      String
+  color     String?  @default("#6366f1") // Default color
   userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

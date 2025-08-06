@@ -51,16 +51,33 @@ export default function PortfoliosPage() {
 
   return (
     <div className="space-y-6">
+      {/* Demo Notice */}
+      <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+          <p className="text-sm text-orange-800 dark:text-orange-200">
+            <strong>Demo Mode:</strong> This page is currently using sample data. Real portfolio management features are under development.
+          </p>
+        </div>
+      </div>
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Portfolios</h1>
-          <p className="text-muted-foreground">Manage your financial portfolios and connected bank accounts.</p>
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Portfolios
+          </h1>
+          <p className="text-muted-foreground mt-2">Manage your financial portfolios and connected bank accounts.</p>
         </div>
-        <Button onClick={() => setPortfolioFormOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Portfolio
-        </Button>
+        <div className="flex items-center gap-3">
+          <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+            DEMO
+          </Badge>
+          <Button onClick={() => setPortfolioFormOpen(true)} size="lg">
+            <Plus className="mr-2 h-5 w-5" />
+            Create Portfolio
+          </Button>
+        </div>
       </div>
 
       {/* Total Balance Card */}

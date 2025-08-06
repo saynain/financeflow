@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@financeflow/database'
+import { getTagColor } from '@/lib/tag-colors'
 
 export async function PUT(
   request: Request,
@@ -46,9 +47,13 @@ export async function PUT(
           })
 
           if (!tag) {
+            // Generate a color for the new tag
+            const color = getTagColor(trimmedName)
+            
             tag = await prisma.tag.create({
               data: {
                 name: trimmedName,
+                color,
                 userId: session.user.id,
               },
             })
