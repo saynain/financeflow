@@ -1,0 +1,49 @@
+Dato;Beløp;Originalt Beløp;Original Valuta;Til konto;Til kontonummer;Fra konto;Fra kontonummer;Type;Tekst;KID;Hovedkategori;Underkategori
+2025-07-01;-199,00;-199,00;NOK;;Coop Extra;BULDER BRUKSKONTO;3610.83.61292;Betaling;Coop Extra;;Mat og drikke;Dagligvarer
+2025-07-02;-364,30;-364,30;NOK;;Jula;BULDER BRUKSKONTO;3610.83.61292;Betaling;Jula;;Handel;Diverse
+2025-07-02;-815,59;-815,59;NOK;;Ark Bok Handel;BULDER BRUKSKONTO;3610.83.61292;Betaling;Ark Bok Handel;;Media;Bøker
+2025-07-04;-535,75;-535,75;NOK;;Coop Extra;BULDER BRUKSKONTO;3610.83.61292;Betaling;Coop Extra;;Mat og drikke;Dagligvarer
+2025-07-05;-234,00;-234,00;NOK;;Sesam Sesam;BULDER BRUKSKONTO;3610.83.61292;Betaling;Sesam Sesam;;Bil;Parkering
+2025-07-06;-105,00;-105,00;NOK;;Sesam Sesam;BULDER BRUKSKONTO;3610.83.61292;Betaling;Sesam Sesam;;Bil;Parkering
+2025-07-11;5000,00;5000,00;NOK;BULDER BRUKSKONTO;3610.83.61292;Lønnskonto;3610.83.61306;Overføring;;;;
+2025-07-12;-100,00;-100,00;NOK;;3905.13.26168;BULDER BRUKSKONTO;3610.83.61292;Betaling;Til: Ole-Jakob Lerøy Neset;;Diverse;Vipps
+2025-07-12;-381,00;-381,00;NOK;;1440.40.10965;BULDER BRUKSKONTO;3610.83.61292;Betaling;Til: Silje Leganger Sture;;Diverse;Vipps
+2025-07-14;-614,15;-614,15;NOK;;Coop Extra;BULDER BRUKSKONTO;3610.83.61292;Betaling;Coop Extra;;Mat og drikke;Dagligvarer
+2025-07-15;-183,10;-183,10;NOK;;Bunnpris;BULDER BRUKSKONTO;3610.83.61292;Betaling;Bunnpris;;Mat og drikke;Dagligvarer
+2025-07-16;-59,30;-59,30;NOK;;Ryde;BULDER BRUKSKONTO;3610.83.61292;Betaling;Ryde;;Reise og transport;Sykkelutleie
+2025-07-17;-798,00;-798,00;NOK;;Eplehuset;BULDER BRUKSKONTO;3610.83.61292;Betaling;Eplehuset;;Handel;Elektronikk
+2025-07-17;-106,64;-106,64;NOK;;MENY;BULDER BRUKSKONTO;3610.83.61292;Betaling;MENY;;Mat og drikke;Dagligvarer
+2025-07-18;-45,00;-45,00;NOK;;;BULDER BRUKSKONTO;3610.83.61292;Betaling;NAERBUTIKKEN FESTE;;Mat og drikke;Dagligvarer
+2025-07-18;-67,90;-67,90;NOK;;;BULDER BRUKSKONTO;3610.83.61292;Betaling;NAERBUTIKKEN FESTE;;Mat og drikke;Dagligvarer
+2025-07-18;-25,90;-25,90;NOK;;Ryde;BULDER BRUKSKONTO;3610.83.61292;Betaling;Ryde;;Reise og transport;Sykkelutleie
+2025-07-18;-50,80;-50,80;NOK;;;BULDER BRUKSKONTO;3610.83.61292;Betaling;NAERBUTIKKEN FESTE;;Mat og drikke;Dagligvarer
+2025-07-18;-270,00;-270,00;NOK;;Sesam Sesam;BULDER BRUKSKONTO;3610.83.61292;Betaling;Sesam Sesam;;Bil;Parkering
+2025-07-18;-64,26;-64,26;NOK;;SPAR;BULDER BRUKSKONTO;3610.83.61292;Betaling;SPAR;;Mat og drikke;Dagligvarer
+2025-07-18;850,00;850,00;NOK;BULDER BRUKSKONTO;3610.83.61292;;1440.40.10965;Betaling;Fra: Silje Leganger Sture Betalt: 18.07.25;;;
+2025-07-19;800,00;800,00;NOK;BULDER BRUKSKONTO;3610.83.61292;;6634.10.54533;Betaling;Fra: Lill Krestin Ryland Betalt: 19.07.25;;;
+2025-07-19;-174,80;-174,80;NOK;;Coop Extra;BULDER BRUKSKONTO;3610.83.61292;Betaling;Coop Extra;;Mat og drikke;Dagligvarer
+2025-07-19;-551,80;-551,80;NOK;;Musti;BULDER BRUKSKONTO;3610.83.61292;Betaling;Musti;;Fritid;Kjæledyr
+2025-07-20;-110,70;-110,70;NOK;;Joker;BULDER BRUKSKONTO;3610.83.61292;Betaling;Joker;;Mat og drikke;Dagligvarer
+2025-07-21;-399,00;-399,00;NOK;;Viaplay;BULDER BRUKSKONTO;3610.83.61292;Betaling;Viaplay;;Media;Strømmetjenester
+2025-07-21;-481,75;-481,75;NOK;;Coop Extra;BULDER BRUKSKONTO;3610.83.61292;Betaling;Coop Extra;;Mat og drikke;Dagligvarer
+2025-07-22;-300,00;-300,00;NOK;;6631.05.49267;BULDER BRUKSKONTO;3610.83.61292;Betaling;Til: Kristine Ryland;;Diverse;Vipps
+2025-07-23;-104,25;-104,25;NOK;;MENY;BULDER BRUKSKONTO;3610.83.61292;Betaling;MENY;;Mat og drikke;Dagligvarer
+2025-07-23;-229,00;-229,00;NOK;;Musti;BULDER BRUKSKONTO;3610.83.61292;Betaling;Musti;;Fritid;Kjæledyr
+2025-07-23;-37,00;-37,00;NOK;;IKEA;BULDER BRUKSKONTO;3610.83.61292;Betaling;IKEA;;Hus og hjem;Interiør
+2025-07-25;-18,40;-18,40;NOK;;Ryde;BULDER BRUKSKONTO;3610.83.61292;Betaling;Ryde;;Reise og transport;Sykkelutleie
+2025-07-26;-210,05;-210,05;NOK;;Coop Extra;BULDER BRUKSKONTO;3610.83.61292;Betaling;Coop Extra;;Mat og drikke;Dagligvarer
+2025-07-26;4000,00;4000,00;NOK;BULDER BRUKSKONTO;3610.83.61292;Lønnskonto;3610.83.61306;Overføring;;;;
+2025-07-26;-519,87;-50,00;USD;;;BULDER BRUKSKONTO;3610.83.61292;Betaling;BCPAY;;Ukategorisert;Kortbetalinger
+2025-07-26;-265,59;-21,78;EUR;;;BULDER BRUKSKONTO;3610.83.61292;Betaling;gomining.com;;Media;Programvare
+2025-07-27;230,00;230,00;NOK;BULDER BRUKSKONTO;3610.83.61292;;3411.36.14961;Betaling;Fra: Emilie Berg Løseth Betalt: 27.07.25;;;
+2025-07-27;-49,00;-49,00;NOK;;;BULDER BRUKSKONTO;3610.83.61292;Betaling;PODCAST SUBSCRIPTIONS;;Media;Programvare
+2025-07-27;-165,00;-165,00;NOK;;;BULDER BRUKSKONTO;3610.83.61292;Betaling;MCDTORGALMENNINGEN;;Mat og drikke;Hurtigmat
+2025-07-28;-446,00;-446,00;NOK;;;BULDER BRUKSKONTO;3610.83.61292;Betaling;PORTAL SJOFARTSDIR NO VIP;;Ukategorisert;Kortbetalinger
+2025-07-28;-60,80;-60,80;NOK;;MENY;BULDER BRUKSKONTO;3610.83.61292;Betaling;MENY;;Mat og drikke;Dagligvarer
+2025-07-28;-169,80;-169,80;NOK;;Bunnpris;BULDER BRUKSKONTO;3610.83.61292;Betaling;Bunnpris;;Mat og drikke;Dagligvarer
+2025-07-29;-165,00;-165,00;NOK;;Playstation;BULDER BRUKSKONTO;3610.83.61292;Betaling;Playstation;;Media;Spill
+2025-07-30;180,00;180,00;NOK;BULDER BRUKSKONTO;3610.83.61292;;3411.36.14961;Betaling;Fra: Emilie Berg Løseth Betalt: 30.07.25;;;
+2025-07-30;1140,25;1140,25;NOK;BULDER BRUKSKONTO;3610.83.61292;;5231.05.09787;Betaling;FLAKTVEIT IDRETTSKLUBB;;;
+2025-07-30;-330,00;-330,00;NOK;;Bergen Klatreklubb;BULDER BRUKSKONTO;3610.83.61292;Betaling;Bergen Klatreklubb;;Fritid;Fritidsaktiviteter
+2025-07-30;-335,80;-335,80;NOK;;Bunnpris;BULDER BRUKSKONTO;3610.83.61292;Betaling;Bunnpris;;Mat og drikke;Dagligvarer
+2025-07-31;-110,62;-110,62;NOK;;MENY;BULDER BRUKSKONTO;3610.83.61292;Betaling;MENY;;Mat og drikke;Dagligvarer 

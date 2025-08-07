@@ -1,0 +1,9 @@
+Amount,Description,Date,Type,Currency,Tags
+25.50,Grocery shopping,2024-01-15,EXPENSE,USD,"groceries, food"
+1200.00,Salary deposit,2024-01-15,INCOME,USD,"salary, income"
+45.00,Gas station,2024-01-16,EXPENSE,USD,"transport, fuel"
+15.99,Netflix subscription,2024-01-16,EXPENSE,USD,"entertainment, subscription"
+89.99,Amazon purchase,2024-01-17,EXPENSE,USD,"shopping, online"
+500.00,Freelance work,2024-01-17,INCOME,USD,"freelance, income"
+12.50,Lunch at restaurant,2024-01-18,EXPENSE,USD,"food, dining"
+67.89,Home improvement store,2024-01-18,EXPENSE,USD,"home, improvement" 
