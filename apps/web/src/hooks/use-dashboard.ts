@@ -74,11 +74,38 @@ interface TransactionsResponse {
   offset: number
 }
 
-export function useTransactions(limit = 10, offset = 0) {
+export type TransactionsFilters = {
+  type?: 'INCOME' | 'EXPENSE'
+  q?: string
+  tags?: string[]
+  startDate?: string
+  endDate?: string
+  sortBy?: 'date' | 'amount' | 'description'
+  sortOrder?: 'asc' | 'desc'
+}
+
+export function useTransactions(
+  limit = 10,
+  offset = 0,
+  filters: TransactionsFilters = {}
+) {
   return useQuery<TransactionsResponse>({
-    queryKey: ['transactions', limit, offset],
+    queryKey: ['transactions', limit, offset, filters],
     queryFn: async () => {
-      const response = await fetch(`/api/transactions?limit=${limit}&offset=${offset}`)
+      const params = new URLSearchParams({
+        limit: String(limit),
+        offset: String(offset),
+      })
+      if (filters.type) params.set('type', filters.type)
+      if (filters.q) params.set('q', filters.q)
+      if (filters.tags && filters.tags.length > 0)
+        params.set('tags', filters.tags.join(','))
+      if (filters.startDate) params.set('startDate', filters.startDate)
+      if (filters.endDate) params.set('endDate', filters.endDate)
+      if (filters.sortBy) params.set('sortBy', filters.sortBy)
+      if (filters.sortOrder) params.set('sortOrder', filters.sortOrder)
+
+      const response = await fetch(`/api/transactions?${params.toString()}`)
       if (!response.ok) {
         throw new Error('Failed to fetch transactions')
       }

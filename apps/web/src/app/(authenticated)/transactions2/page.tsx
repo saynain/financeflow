@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, DollarSign, X, Upload, Edit, Trash2, Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, DollarSign, Upload, Edit, Trash2, Check, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTransactions, useDashboardStats, type TransactionsFilters } from '@/hooks/use-dashboard'
 import { format } from 'date-fns'
@@ -19,6 +18,7 @@ import { toast } from 'sonner'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Transaction } from '@/types/transaction'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { getTagColor } from '@/lib/tag-colors'
 
 function InlineDeleteButton({ id, onDeleted }: { id: string; onDeleted: () => void }) {
@@ -41,7 +41,7 @@ function InlineDeleteButton({ id, onDeleted }: { id: string; onDeleted: () => vo
   )
 }
 
-export default function ExpensesPage() {
+export default function TransactionsV2Page() {
   const [transactionFormOpen, setTransactionFormOpen] = useState(false)
   const [csvImportOpen, setCsvImportOpen] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -87,7 +87,11 @@ export default function ExpensesPage() {
   }, [])
 
   // Debounce search
-  // Revert to immediate search for classic page
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchQuery), 300)
+    return () => clearTimeout(id)
+  }, [searchQuery])
 
   // Sync URL on filter change
   useEffect(() => {
@@ -109,7 +113,7 @@ export default function ExpensesPage() {
     currentPage * pageSize,
     {
       type: typeFilter,
-      q: searchQuery || undefined,
+      q: debouncedSearch || undefined,
       tags: selectedTags,
       startDate,
       endDate,
@@ -122,7 +126,37 @@ export default function ExpensesPage() {
   const allTransactions = transactionsData?.transactions || []
   const filteredTransactions = allTransactions
 
-  // Remove totals row and export button from classic page
+  const totals = useMemo(() => {
+    let income = 0
+    let expenses = 0
+    for (const t of filteredTransactions) {
+      const amt = Number(t.amount)
+      if (t.type === 'INCOME') income += amt
+      else expenses += amt
+    }
+    const net = income - expenses
+    return { income, expenses, net }
+  }, [filteredTransactions])
+
+  const exportCSV = () => {
+    const header = ['Date', 'Type', 'Description', 'Amount', 'Currency', 'Tags']
+    const rows = filteredTransactions.map((t) => [
+      new Date(t.date).toISOString(),
+      t.type,
+      t.description || '',
+      String(t.amount),
+      t.currency,
+      (t.tags || []).join('|'),
+    ])
+    const csv = [header, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'transactions.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
@@ -189,7 +223,6 @@ export default function ExpensesPage() {
   }
 
   const handleBulkEdit = () => {
-    // TODO: Implement bulk edit modal
     toast.info('Bulk edit feature coming soon!')
   }
 
@@ -199,7 +232,7 @@ export default function ExpensesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            All Transactions
+            All Transactions (v2)
           </h1>
           <p className="text-muted-foreground mt-2">
             {filteredTransactions.length} of {transactionsData?.total || allTransactions.length} transactions
@@ -215,7 +248,13 @@ export default function ExpensesPage() {
             <Upload className="mr-2 h-5 w-5" />
             Import CSV
           </Button>
-          {/* classic page: no export button */}
+          <Button 
+            variant="outline"
+            onClick={exportCSV}
+            size="lg"
+          >
+            Export CSV
+          </Button>
           <Button 
             variant="outline" 
             onClick={toggleBulkMode} 
@@ -251,7 +290,7 @@ export default function ExpensesPage() {
               <option value="EXPENSE">Expenses</option>
               <option value="INCOME">Income</option>
             </select>
-            {/* Date range simple inputs for now */}
+            {/* Date range */}
             <input
               type="date"
               value={startDate || ''}
@@ -289,47 +328,6 @@ export default function ExpensesPage() {
               <option value="description:asc">Description (A→Z)</option>
               <option value="description:desc">Description (Z→A)</option>
             </select>
-            
-            {bulkMode && (
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    checked={selectedTransactions.length === filteredTransactions.length && filteredTransactions.length > 0}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        selectAllTransactions()
-                      } else {
-                        clearAllTransactions()
-                      }
-                    }}
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    Select All ({selectedTransactions.length}/{filteredTransactions.length})
-                  </span>
-                </div>
-                
-                {selectedTransactions.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleBulkEdit}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit ({selectedTransactions.length})
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={handleBulkDelete}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete ({selectedTransactions.length})
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
         
@@ -369,7 +367,68 @@ export default function ExpensesPage() {
           </div>
         ) : (
           <>
-            {!bulkMode && (
+            {!bulkMode ? (
+              <div className="overflow-x-auto">
+                {/* Totals row */}
+                <div className="mb-3 flex flex-wrap items-center gap-4 text-sm">
+                  <div className="text-green-600 font-medium">Income: {formatCurrency(totals.income, allTransactions[0]?.currency || 'USD')}</div>
+                  <div className="text-red-600 font-medium">Expenses: {formatCurrency(totals.expenses, allTransactions[0]?.currency || 'USD')}</div>
+                  <div className={cn('font-semibold', totals.net >= 0 ? 'text-green-700' : 'text-red-700')}>
+                    Net: {formatCurrency(Math.abs(totals.net), allTransactions[0]?.currency || 'USD')}
+                    {totals.net < 0 ? ' (negative)' : ''}
+                  </div>
+                </div>
+                <table className="w-full text-sm">
+                  <thead className="text-xs text-muted-foreground border-b">
+                    <tr>
+                      <th className="py-2 text-left">Date</th>
+                      <th className="py-2 text-left">Description</th>
+                      <th className="py-2 text-left">Tags</th>
+                      <th className="py-2 text-right">Amount</th>
+                      <th className="py-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTransactions.map((t) => (
+                      <tr key={t.id} className="border-b last:border-0">
+                        <td className="py-3 align-top whitespace-nowrap">{format(new Date(t.date), 'MMM d, yyyy')}</td>
+                        <td className="py-3 align-top">{t.description || 'Transaction'}</td>
+                        <td className="py-3 align-top">
+                          <div className="flex flex-wrap gap-1">
+                            {(t.tags || []).map((tag) => {
+                              const color = getTagColor(tag)
+                              return (
+                                <Badge key={tag} variant="secondary" className="text-xs" style={{ backgroundColor: `${color}20`, color, borderColor: `${color}40` }}>
+                                  {tag}
+                                </Badge>
+                              )
+                            })}
+                          </div>
+                        </td>
+                        <td className={cn('py-3 align-top text-right font-medium', t.type === 'INCOME' ? 'text-green-600' : 'text-red-600')}>
+                          {t.type === 'INCOME' ? '+' : '-'}{formatCurrency(Number(t.amount), t.currency)}
+                        </td>
+                        <td className="py-3 align-top text-right">
+                          <div className="inline-flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => setDetailsTransaction(t)}>
+                              <Eye className="h-4 w-4 mr-1" /> Details
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setEditingTransaction(t)}>
+                              <Edit className="h-4 w-4 mr-1" /> Edit
+                            </Button>
+                            <InlineDeleteButton id={t.id} onDeleted={() => {
+                              queryClient.invalidateQueries({ queryKey: ['transactions'] })
+                              queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+                              queryClient.invalidateQueries({ queryKey: ['dashboard-charts'] })
+                            }} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
               <div className="space-y-4">
                 {filteredTransactions.map((transaction) => (
                   <div key={transaction.id} className="flex items-start gap-3">
@@ -427,8 +486,6 @@ export default function ExpensesPage() {
         )}
       </div>
 
-
-
       {/* Transaction Form Modal - Create */}
       <TransactionForm 
         open={transactionFormOpen} 
@@ -447,7 +504,59 @@ export default function ExpensesPage() {
         onOpenChange={setCsvImportOpen} 
       />
 
-      {/* Classic page: no details drawer */}
+      {/* Details Drawer */}
+      <Sheet open={!!detailsTransaction} onOpenChange={(o) => !o && setDetailsTransaction(null)}>
+        <SheetContent side="right" className="w-[420px] sm:w-[480px]">
+          <SheetHeader>
+            <SheetTitle>Transaction Details</SheetTitle>
+          </SheetHeader>
+          {detailsTransaction && (
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">Date</div>
+                <div className="text-sm">{format(new Date(detailsTransaction.date), 'PPP')}</div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">Type</div>
+                <div className={cn('text-sm font-medium', detailsTransaction.type === 'INCOME' ? 'text-green-600' : 'text-red-600')}>
+                  {detailsTransaction.type}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">Amount</div>
+                <div className={cn('text-sm font-semibold', detailsTransaction.type === 'INCOME' ? 'text-green-600' : 'text-red-600')}>
+                  {detailsTransaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(Number(detailsTransaction.amount), detailsTransaction.currency)}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">Description</div>
+                <div className="text-sm">{detailsTransaction.description || '-'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">Tags</div>
+                <div className="flex flex-wrap gap-1">
+                  {(detailsTransaction.tags || []).map((tag) => {
+                    const color = getTagColor(tag)
+                    return (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="text-xs"
+                        style={{ backgroundColor: `${color}20`, color, borderColor: `${color}40` }}
+                      >
+                        {tag}
+                      </Badge>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
+
+ 
+

@@ -14,16 +14,58 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = parseInt(searchParams.get('offset') || '0')
+    const type = searchParams.get('type') || undefined // INCOME | EXPENSE
+    const q = (searchParams.get('q') || '').trim()
+    const tagsParam = searchParams.get('tags') || ''
+    const tags = tagsParam
+      ? tagsParam
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : []
+    const startDateParam = searchParams.get('startDate') || undefined
+    const endDateParam = searchParams.get('endDate') || undefined
+    const sortBy = (searchParams.get('sortBy') || 'date') as
+      | 'date'
+      | 'amount'
+      | 'description'
+    const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc'
+
+    // Build Prisma where clause based on filters
+    const where: any = { userId: session.user.id }
+    if (type === 'INCOME' || type === 'EXPENSE') {
+      where.type = type
+    }
+    if (q) {
+      where.OR = [
+        { description: { contains: q, mode: 'insensitive' } },
+      ]
+    }
+    if (tags.length > 0) {
+      where.tags = { hasSome: tags }
+    }
+    if (startDateParam || endDateParam) {
+      where.date = {}
+      if (startDateParam) where.date.gte = new Date(startDateParam)
+      if (endDateParam) where.date.lte = new Date(endDateParam)
+    }
+
+    const orderBy =
+      sortBy === 'amount'
+        ? { amount: sortOrder }
+        : sortBy === 'description'
+          ? { description: sortOrder }
+          : { date: sortOrder }
 
     const transactions = await prisma.transaction.findMany({
-      where: { userId: session.user.id },
-      orderBy: { date: 'desc' },
+      where,
+      orderBy,
       take: limit,
       skip: offset,
     })
 
     const total = await prisma.transaction.count({
-      where: { userId: session.user.id },
+      where,
     })
 
     return NextResponse.json({

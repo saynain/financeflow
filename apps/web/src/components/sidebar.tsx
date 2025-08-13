@@ -25,7 +25,9 @@ import { useState } from 'react'
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Transactions', href: '/transactions', icon: CreditCard },
+  { name: 'Transactions v2', href: '/transactions2', icon: CreditCard },
   { name: 'Budgets', href: '/budget', icon: BarChart3 },
+  { name: 'Budgets v2', href: '/budget2', icon: BarChart3 },
   { name: 'Portfolios', href: '/portfolios', icon: Briefcase, isDemo: true },
   { name: 'Savings', href: '/savings', icon: PiggyBank, isDemo: true },
   { name: 'Investments', href: '/investments', icon: TrendingUp, isDemo: true },
